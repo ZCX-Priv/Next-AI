@@ -1,0 +1,405 @@
+// API配置文件
+const API_CONFIG = {
+    // OpenAI配置
+    openai: {
+        name: 'OpenAI',
+        enabled: false, 
+        baseURL: 'https://api.openai.com/v1',
+        apiKey: '', // 请在此处填入您的API密钥
+        models: [
+            'gpt-4-turbo-preview',
+            'gpt-4',
+            'gpt-3.5-turbo',
+            'gpt-3.5-turbo-16k'
+        ],
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer {API_KEY}'
+        }
+    },
+
+    // Google AI Studio配置
+    googleai: {
+        name: 'Google AI Studio',
+        enabled: false, 
+        baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+        apiKey: '', // 请在此处填入您的API密钥
+        models: [
+            'gemini-pro',
+            'gemini-pro-vision',
+            'gemini-1.5-pro',
+            'gemini-1.5-flash'
+        ],
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    },
+
+    // Anthropic配置
+    anthropic: {
+        name: 'Anthropic',
+        enabled: false, 
+        baseURL: 'https://api.anthropic.com/v1',
+        apiKey: '', // 请在此处填入您的API密钥
+        models: [
+            'claude-3-opus-20240229',
+            'claude-3-sonnet-20240229',
+            'claude-3-haiku-20240307',
+            'claude-2.1',
+            'claude-2.0'
+        ],
+        headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': '{API_KEY}',
+            'anthropic-version': '2023-06-01'
+        }
+    },
+
+    // DeepSeek配置
+    deepseek: {
+        name: 'DeepSeek',
+        enabled: false, 
+        baseURL: 'https://api.deepseek.com/v1',
+        apiKey: '', // 请在此处填入您的API密钥
+        models: [
+            'deepseek-chat',
+            'deepseek-coder',
+            'deepseek-math'
+        ],
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer {API_KEY}'
+        }
+    },
+
+    // xAI Grok配置
+    xai: {
+        name: 'xAI Grok',
+        enabled: false, 
+        baseURL: 'https://api.x.ai/v1',
+        apiKey: '', // 请在此处填入您的API密钥
+        models: [
+            'grok-beta',
+            'grok-vision-beta'
+        ],
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer {API_KEY}'
+        }
+    },
+
+    // OpenRouter配置
+    openrouter: {
+        name: 'OpenRouter',
+        enabled: true, 
+        baseURL: 'https://openrouter.ai/api/v1',
+        apiKey: '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', // 请在此处填入您的API密钥
+        models: [
+            'deepseek/deepseek-chat-v3-0324:free',
+            'deepseek/deepseek-r1-0528:free',
+            'qwen/qwq-32b:free',
+            'qwen/qwen3-235b-a22b-2507:free',
+            'z-ai/glm-4.5-air:free',
+            'moonshotai/kimi-k2:free',
+            'tencent/hunyuan-a13b-instruct:free'
+        ],
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer {API_KEY}',
+            'HTTP-Referer': window.location.origin,
+            'X-Title': 'AI Chat'
+        }
+    },
+
+    // Pollinations配置
+    pollinations: {
+        name: 'Pollinations',
+        enabled: true, 
+        baseURL: 'https://text.pollinations.ai',
+        apiKey: '', // Pollinations通常不需要API密钥
+        models: [
+            'openai',
+            'openai-fast',
+            'openai-reasoning',
+            'deepseek-reasoning',
+            'grok',
+            'mistral',
+            'phi'
+        ],
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    },
+
+    // Ollama配置（本地部署）
+    ollama: {
+        name: 'Ollama',
+        enabled: false, 
+        baseURL: 'http://localhost:11434/api',
+        apiKey: '', // Ollama不需要API密钥
+        models: [
+            'llama2',
+            'codellama',
+            'mistral',
+            'neural-chat',
+            'starcode'
+        ],
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    }
+};
+
+// 默认配置
+const DEFAULT_CONFIG = {
+    currentProvider: null, // 将自动检测第一个启用的提供商
+    currentModel: null, // 将自动检测第一个模型
+    temperature: 0.7,
+    topP: 1.0,
+    contextLength: 10, // 上下文长度（0-25）
+    maxTokens: 2048,
+    timeout: 30000, // 30秒超时
+    retryAttempts: 3
+};
+
+// 配置管理类
+class ConfigManager {
+    constructor() {
+        this.config = { ...DEFAULT_CONFIG };
+        this.loadConfig();
+        this.initializeConfig(); // 确保配置有效
+    }
+
+    // 获取第一个启用的提供商和模型
+    getFirstEnabledProviderAndModel() {
+        const enabledProviders = this.getProviders();
+        if (enabledProviders.length > 0) {
+            const firstProvider = enabledProviders[0];
+            const firstModel = firstProvider.models[0];
+            return {
+                provider: firstProvider.key,
+                model: firstModel
+            };
+        }
+        // 如果没有启用的提供商，返回null
+        return null;
+    }
+
+    // 初始化配置，确保使用启用的提供商
+    initializeConfig() {
+        const enabledProviders = this.getProviders();
+        
+        // 如果当前提供商为null或未启用，自动检测第一个启用的提供商
+        if (!this.config.currentProvider || !enabledProviders.find(p => p.key === this.config.currentProvider)) {
+            const firstEnabled = this.getFirstEnabledProviderAndModel();
+            if (firstEnabled) {
+                this.config.currentProvider = firstEnabled.provider;
+                this.config.currentModel = firstEnabled.model;
+                this.saveConfig();
+            } else {
+                // 没有启用的提供商，重置为null
+                this.config.currentProvider = null;
+                this.config.currentModel = null;
+            }
+        }
+        
+        // 如果当前模型为null或在当前提供商中不存在，使用该提供商的第一个模型
+        const currentProvider = this.getCurrentProvider();
+        if (currentProvider && (!this.config.currentModel || !currentProvider.models.includes(this.config.currentModel))) {
+            this.config.currentModel = currentProvider.models[0];
+            this.saveConfig();
+        }
+    }
+
+    // 从localStorage加载配置
+    loadConfig() {
+        try {
+            const savedConfig = localStorage.getItem('ai_chat_config');
+            if (savedConfig) {
+                this.config = { ...this.config, ...JSON.parse(savedConfig) };
+            }
+        } catch (error) {
+            console.warn('加载配置失败:', error);
+        }
+    }
+
+    // 保存配置到localStorage
+    saveConfig() {
+        try {
+            localStorage.setItem('ai_chat_config', JSON.stringify(this.config));
+        } catch (error) {
+            console.warn('保存配置失败:', error);
+        }
+    }
+
+    // 获取当前提供商配置
+    getCurrentProvider() {
+        return API_CONFIG[this.config.currentProvider];
+    }
+
+    // 设置当前提供商
+    setProvider(provider) {
+        if (API_CONFIG[provider]) {
+            this.config.currentProvider = provider;
+            this.saveConfig();
+            return true;
+        }
+        return false;
+    }
+
+    // 设置当前模型
+    setModel(model) {
+        const provider = this.getCurrentProvider();
+        if (provider && provider.models.includes(model)) {
+            this.config.currentModel = model;
+            this.saveConfig();
+            return true;
+        }
+        return false;
+    }
+
+    // 设置温度
+    setTemperature(temperature) {
+        const temp = parseFloat(temperature);
+        if (temp >= 0 && temp <= 2) {
+            this.config.temperature = temp;
+            this.saveConfig();
+            return true;
+        }
+        return false;
+    }
+
+    // 设置Top_P
+    setTopP(topP) {
+        const tp = parseFloat(topP);
+        if (tp >= 0 && tp <= 1) {
+            this.config.topP = tp;
+            this.saveConfig();
+            return true;
+        }
+        return false;
+    }
+
+    // 设置上下文长度
+    setContextLength(length) {
+        const len = parseInt(length);
+        if (len >= 0 && len <= 25) {
+            this.config.contextLength = len;
+            this.saveConfig();
+            return true;
+        }
+        return false;
+    }
+
+    // 获取温度
+    getTemperature() {
+        return this.config.temperature;
+    }
+
+    // 获取Top_P
+    getTopP() {
+        return this.config.topP;
+    }
+
+    // 获取上下文长度
+    getContextLength() {
+        return this.config.contextLength;
+    }
+
+    // 设置API密钥
+    setApiKey(provider, apiKey) {
+        if (API_CONFIG[provider]) {
+            API_CONFIG[provider].apiKey = apiKey;
+            // 注意：出于安全考虑，API密钥不保存到localStorage
+            return true;
+        }
+        return false;
+    }
+
+    // 获取API密钥
+    getApiKey(provider) {
+        return API_CONFIG[provider]?.apiKey || '';
+    }
+
+    // 获取请求头
+    getHeaders(provider) {
+        const providerConfig = API_CONFIG[provider];
+        if (!providerConfig) return {};
+
+        const headers = { ...providerConfig.headers };
+        const apiKey = providerConfig.apiKey;
+
+        // 替换API密钥占位符
+        Object.keys(headers).forEach(key => {
+            if (typeof headers[key] === 'string') {
+                headers[key] = headers[key].replace('{API_KEY}', apiKey);
+            }
+        });
+
+        return headers;
+    }
+
+    // 启用或禁用API提供商
+    setProviderEnabled(provider, enabled) {
+        if (API_CONFIG[provider]) {
+            API_CONFIG[provider].enabled = enabled;
+            return true;
+        }
+        return false;
+    }
+
+    // 获取所有提供商（包括禁用的）
+    getAllProviders() {
+        return Object.keys(API_CONFIG).map(key => ({
+            key,
+            name: API_CONFIG[key].name,
+            enabled: API_CONFIG[key].enabled,
+            models: API_CONFIG[key].models
+        }));
+    }
+
+    // 获取所有可用的提供商（只返回启用的）
+    getProviders() {
+        return Object.keys(API_CONFIG)
+            .filter(key => API_CONFIG[key].enabled) // 只返回启用的API
+            .map(key => ({
+                key,
+                name: API_CONFIG[key].name,
+                models: API_CONFIG[key].models
+            }));
+    }
+
+    // 验证配置
+    validateConfig(provider) {
+        const providerConfig = API_CONFIG[provider];
+        if (!providerConfig) {
+            return { valid: false, error: '未知的提供商' };
+        }
+
+        // 检查是否需要API密钥
+        if (['openai', 'anthropic', 'deepseek', 'xai', 'openrouter', 'googleai'].includes(provider)) {
+            if (!providerConfig.apiKey) {
+                return { valid: false, error: '请设置API密钥' };
+            }
+        }
+
+        return { valid: true };
+    }
+
+    // 获取完整配置
+    getConfig() {
+        return {
+            ...this.config,
+            provider: this.getCurrentProvider()
+        };
+    }
+}
+
+// 导出配置
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = { API_CONFIG, DEFAULT_CONFIG, ConfigManager };
+} else {
+    window.API_CONFIG = API_CONFIG;
+    window.DEFAULT_CONFIG = DEFAULT_CONFIG;
+    window.ConfigManager = ConfigManager;
+}
