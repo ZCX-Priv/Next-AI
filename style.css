@@ -486,9 +486,9 @@ body {
     gap: 8px;
 }
 
-.action-btn {
-    width: 36px;
-    height: 36px;
+.header-actions .action-btn {
+    width: 44px !important;
+    height: 44px !important;
     border: none;
     border-radius: 8px;
     background: var(--bg-tertiary);
@@ -498,16 +498,16 @@ body {
     align-items: center;
     justify-content: center;
     transition: all 0.2s ease;
-    font-size: 14px;
+    font-size: 16px !important;
 }
 
-.action-btn:hover {
+.header-actions .action-btn:hover {
     background: var(--hover-color);
     color: var(--text-primary);
     transform: translateY(-1px);
 }
 
-.action-btn.active {
+.header-actions .action-btn.active {
     background: var(--accent-color);
     color: white;
 }
