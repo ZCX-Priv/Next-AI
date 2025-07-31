@@ -214,6 +214,37 @@ class ChatApp {
 
         // 角色模态框事件
         this.bindRoleModalEvents();
+
+        // 窗口大小变化监听器
+        window.addEventListener('resize', () => {
+            this.handleWindowResize();
+        });
+    }
+
+    // 处理窗口大小变化
+    handleWindowResize() {
+        const sidebar = document.getElementById('sidebar');
+        if (!sidebar) return;
+
+        const isMobile = window.innerWidth <= 768;
+        
+        if (isMobile) {
+            // 切换到移动端：移除桌面端的collapsed类，确保使用移动端的open/close逻辑
+            sidebar.classList.remove('collapsed');
+            if (!sidebar.classList.contains('open')) {
+                // 移动端默认关闭
+                sidebar.classList.remove('open');
+            }
+        } else {
+            // 切换到桌面端：移除移动端的open类，根据本地存储设置collapsed状态
+            sidebar.classList.remove('open');
+            const isCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
+            if (isCollapsed) {
+                sidebar.classList.add('collapsed');
+            } else {
+                sidebar.classList.remove('collapsed');
+            }
+        }
     }
 
     selectModel(model, provider) {
@@ -1206,8 +1237,8 @@ class ChatApp {
                         <p>${message}</p>
                     </div>
                     <div class="modal-footer">
-                        <button class="btn-secondary cancel-btn">取消</button>
                         <button class="btn-primary confirm-btn">确认</button>
+                        <button class="btn-secondary cancel-btn">取消</button>
                     </div>
                 </div>
             `;
@@ -1281,8 +1312,8 @@ class ChatApp {
                         <input type="text" class="input-field" value="${defaultValue}" placeholder="${placeholder}" />
                     </div>
                     <div class="modal-footer">
-                        <button class="btn-secondary cancel-btn">取消</button>
                         <button class="btn-primary confirm-btn">确认</button>
+                        <button class="btn-secondary cancel-btn">取消</button>
                     </div>
                 </div>
             `;
@@ -1797,8 +1828,8 @@ c & d
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button class="btn-secondary" id="cancelBtn">取消</button>
                     <button class="btn-primary" id="saveBtn">保存</button>
+                    <button class="btn-secondary" id="cancelBtn">取消</button>
                 </div>
             </div>
         `;
@@ -2079,8 +2110,8 @@ c & d
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button class="btn-secondary" id="cancelBtn">取消</button>
                     <button class="btn-primary" id="saveBtn">保存</button>
+                    <button class="btn-secondary" id="cancelBtn">取消</button>
                 </div>
             </div>
         `;
@@ -2390,16 +2421,29 @@ c & d
         const sidebar = document.getElementById('sidebar');
         if (!sidebar) return;
 
-        const isCollapsed = sidebar.classList.contains('collapsed');
+        // 检查是否为移动端
+        const isMobile = window.innerWidth <= 768;
         
-        if (isCollapsed) {
-            // 展开侧边栏
-            sidebar.classList.remove('collapsed');
-            localStorage.setItem('sidebarCollapsed', 'false');
+        if (isMobile) {
+            // 移动端逻辑：使用 open 类
+            const isOpen = sidebar.classList.contains('open');
+            if (isOpen) {
+                sidebar.classList.remove('open');
+            } else {
+                sidebar.classList.add('open');
+            }
         } else {
-            // 折叠侧边栏
-            sidebar.classList.add('collapsed');
-            localStorage.setItem('sidebarCollapsed', 'true');
+            // 桌面端逻辑：使用 collapsed 类
+            const isCollapsed = sidebar.classList.contains('collapsed');
+            if (isCollapsed) {
+                // 展开侧边栏
+                sidebar.classList.remove('collapsed');
+                localStorage.setItem('sidebarCollapsed', 'false');
+            } else {
+                // 折叠侧边栏
+                sidebar.classList.add('collapsed');
+                localStorage.setItem('sidebarCollapsed', 'true');
+            }
         }
     }
 
@@ -2408,9 +2452,17 @@ c & d
         const sidebar = document.getElementById('sidebar');
         if (!sidebar) return;
 
-        const isCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
-        if (isCollapsed) {
-            sidebar.classList.add('collapsed');
+        const isMobile = window.innerWidth <= 768;
+        
+        if (isMobile) {
+            // 移动端默认关闭侧边栏
+            sidebar.classList.remove('open');
+        } else {
+            // 桌面端根据本地存储设置
+            const isCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
+            if (isCollapsed) {
+                sidebar.classList.add('collapsed');
+            }
         }
     }
 

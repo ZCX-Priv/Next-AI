@@ -1425,10 +1425,17 @@ body {
 @media (max-width: 768px) {
     .sidebar {
         width: 100%;
+        height: 100vh;
         position: absolute;
         z-index: 1000;
         transform: translateX(-100%);
         transition: transform 0.3s;
+        top: 0;
+        left: 0;
+    }
+    
+    .sidebar-header {
+        min-width: unset;
     }
     
     .sidebar.open {
@@ -1450,6 +1457,244 @@ body {
     
     .sidebar.collapsed + .main-content .sidebar-expand-btn {
         display: flex !important;
+    }
+    
+    /* 移动端角色模态框优化 */
+    .role-modal-content {
+        width: 95%;
+        max-width: none;
+        max-height: 90vh;
+        margin: 20px;
+        padding: 16px;
+        border-radius: 8px;
+    }
+    
+    .role-modal-header {
+        margin-bottom: 16px;
+        padding-bottom: 12px;
+    }
+    
+    .role-modal-title {
+        font-size: 18px;
+    }
+    
+    .role-search {
+        padding: 10px 12px;
+        font-size: 16px; /* 防止iOS缩放 */
+    }
+    
+    .role-list {
+        max-height: 300px;
+    }
+    
+    .role-item {
+        padding: 10px;
+        margin-bottom: 6px;
+    }
+    
+    .role-avatar {
+        width: 36px;
+        height: 36px;
+        font-size: 16px;
+        margin-right: 10px;
+    }
+    
+    .role-name {
+        font-size: 14px;
+    }
+    
+    .role-description {
+        font-size: 11px;
+    }
+    
+    .role-modal-footer {
+        margin-top: 16px;
+        padding-top: 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    .role-btn {
+        padding: 10px 16px;
+        font-size: 14px;
+        min-width: 80px;
+    }
+    
+    .role-btn-add {
+        width: 100%;
+        margin-right: 0;
+        margin-bottom: 4px;
+        order: 1;
+    }
+    
+    /* 创建确认和取消按钮的容器 */
+    .role-modal-footer {
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .role-btn-confirm,
+    .role-btn-cancel {
+        order: 2;
+    }
+    
+    /* 使用CSS Grid来布局确认和取消按钮 */
+    .role-modal-footer .role-btn-confirm {
+        grid-area: confirm;
+    }
+    
+    .role-modal-footer .role-btn-cancel {
+        grid-area: cancel;
+    }
+    
+    /* 移动端添加/编辑角色表单优化 */
+    .add-role-form .form-group {
+        margin-bottom: 16px;
+    }
+    
+    .add-role-form label {
+        font-size: 14px;
+        margin-bottom: 6px;
+    }
+    
+    .add-role-form input,
+    .add-role-form textarea {
+        padding: 10px 12px;
+        font-size: 16px; /* 防止iOS缩放 */
+        border-radius: 6px;
+    }
+    
+    .add-role-form textarea {
+        min-height: 80px;
+    }
+    
+    /* 移动端设置模态框优化 */
+    .settings-modal .modal-content {
+        width: 95%;
+        max-width: none;
+        margin: 20px;
+        max-height: 90vh;
+    }
+    
+    .settings-modal .modal-header {
+        padding: 16px;
+    }
+    
+    .settings-modal .modal-header h3 {
+        font-size: 18px;
+    }
+    
+    .settings-modal .modal-body {
+        padding: 16px;
+    }
+    
+    .settings-modal .setting-item {
+        padding: 12px;
+        margin-bottom: 12px;
+    }
+    
+    .settings-modal .setting-label {
+        font-size: 14px;
+        margin-bottom: 8px;
+    }
+    
+    .settings-modal .setting-value {
+        font-size: 12px;
+        min-width: 35px;
+    }
+    
+    .settings-modal .modal-footer {
+        padding: 16px;
+        gap: 8px;
+    }
+    
+    .settings-modal .btn-secondary,
+    .settings-modal .btn-primary {
+        padding: 10px 16px;
+        font-size: 14px;
+        flex: 1;
+    }
+    
+    /* 移动端自定义对话框优化 */
+    .custom-modal .modal-content {
+        width: 95%;
+        max-width: none;
+        margin: 20px;
+    }
+    
+    .custom-modal .modal-header {
+        padding: 16px;
+    }
+    
+    .custom-modal .modal-header h3 {
+        font-size: 18px;
+    }
+    
+    .custom-modal .modal-body {
+        padding: 16px;
+    }
+    
+    .custom-modal .modal-body p {
+        font-size: 14px;
+        margin-bottom: 12px;
+    }
+    
+    .custom-modal .input-field {
+        padding: 10px 12px;
+        font-size: 16px; /* 防止iOS缩放 */
+    }
+    
+    .custom-modal .modal-footer {
+        padding: 16px;
+        gap: 8px;
+    }
+    
+    .custom-modal .btn-secondary,
+    .custom-modal .btn-primary {
+        padding: 10px 16px;
+        font-size: 14px;
+        flex: 1;
+    }
+    
+    /* 移动端头部操作按钮优化 */
+    .header-actions {
+        gap: 6px;
+    }
+    
+    .header-actions .action-btn {
+        width: 40px !important;
+        height: 40px !important;
+        font-size: 14px !important;
+    }
+    
+    /* 移动端模型选择器优化 */
+    .model-selector {
+        padding: 8px 12px;
+        gap: 8px;
+    }
+    
+    .model-dropdown {
+        flex: 1;
+        min-width: 0;
+    }
+    
+    .model-btn {
+        padding: 8px 12px;
+        font-size: 14px;
+    }
+    
+    .model-btn span {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    
+    .sidebar-expand-btn {
+        width: 36px;
+        height: 36px;
+        font-size: 14px;
+        margin-right: 8px;
     }
 }
 
