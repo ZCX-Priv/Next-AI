@@ -1053,14 +1053,21 @@ class ChatApp {
 
         const userMessage = userMessageDiv.querySelector('.message-content').textContent;
         
-        // 只删除AI消息的DOM元素和数组中的记录
-        const messageIndex = Array.from(messageDiv.parentNode.children).indexOf(messageDiv);
-        if (messageIndex >= 0) {
-            // 只移除AI消息，保留用户消息
+        // 找到要删除的AI消息在messages数组中的索引
+        // 需要排除系统通知消息，只计算实际的用户和AI消息
+        const allMessageDivs = Array.from(messageDiv.parentNode.children);
+        const actualMessages = allMessageDivs.filter(div => 
+            div.classList.contains('user') || 
+            (div.classList.contains('assistant') && !div.classList.contains('system-notification'))
+        );
+        const messageIndex = actualMessages.indexOf(messageDiv);
+        
+        if (messageIndex >= 0 && messageIndex < this.messages.length) {
+            // 删除messages数组中对应的AI消息
             this.messages.splice(messageIndex, 1);
         }
 
-        // 只删除AI消息的DOM元素，保留用户消息
+        // 删除AI消息的DOM元素
         messageDiv.remove();
 
         // 创建新的AI消息容器并显示思考指示器
@@ -1083,10 +1090,21 @@ class ChatApp {
 
     // 删除消息
     deleteMessage(messageDiv) {
-        // 找到对应的消息索引
-        const messageIndex = Array.from(messageDiv.parentNode.children).indexOf(messageDiv);
-        if (messageIndex > 0) {
-            this.messages.splice(messageIndex - 1, 1);
+        // 找到要删除的消息在messages数组中的索引
+        // 需要排除系统通知消息，只计算实际的用户和AI消息
+        const allMessageDivs = Array.from(messageDiv.parentNode.children);
+        const actualMessages = allMessageDivs.filter(div => 
+            div.classList.contains('user') || 
+            (div.classList.contains('assistant') && !div.classList.contains('system-notification'))
+        );
+        const messageIndex = actualMessages.indexOf(messageDiv);
+        
+        if (messageIndex >= 0 && messageIndex < this.messages.length) {
+            // 删除messages数组中对应的消息
+            this.messages.splice(messageIndex, 1);
+            
+            // 保存更新后的消息历史
+            this.chatHistoryManager.saveMessages(this.messages);
         }
 
         // 删除DOM元素
