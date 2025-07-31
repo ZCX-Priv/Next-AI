@@ -324,7 +324,14 @@ body {
     display: flex;
     flex-direction: column;
     border-right: 1px solid var(--border-color);
-    transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.sidebar.collapsed {
+    width: 0;
+    overflow: hidden;
+    border-right: none;
 }
 
 .sidebar-header {
@@ -333,6 +340,13 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    min-width: 260px; /* 保持最小宽度以防止内容挤压 */
+}
+
+.sidebar-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
 .sidebar-header h2 {
@@ -341,7 +355,7 @@ body {
     color: var(--text-primary);
 }
 
-.new-chat-btn {
+.new-chat-btn, .sidebar-toggle-btn {
     background: none;
     border: none;
     color: var(--text-secondary);
@@ -349,11 +363,63 @@ body {
     padding: 8px;
     border-radius: 6px;
     transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
 }
 
-.new-chat-btn:hover {
+.new-chat-btn:hover, .sidebar-toggle-btn:hover {
     background-color: var(--hover-color);
     color: var(--text-primary);
+}
+
+.sidebar-toggle-btn i {
+    transition: transform 0.3s ease;
+}
+
+.sidebar.collapsed .sidebar-toggle-btn i {
+    transform: rotate(180deg);
+}
+
+/* 展开侧边栏按钮 */
+.sidebar-expand-btn {
+    background: var(--bg-tertiary);
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 8px 12px;
+    border-radius: 6px;
+    transition: all 0.3s ease;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    height: 36px;
+    min-width: 36px;
+    margin-right: 12px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.sidebar-expand-btn:hover {
+    background: var(--hover-color);
+    color: var(--text-primary);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+.sidebar.collapsed + .main-content .sidebar-expand-btn {
+    display: flex;
+}
+
+/* 主内容区域调整 */
+.main-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background-color: var(--bg-primary);
+    transition: all 0.3s ease;
+    position: relative;
 }
 
 .chat-history {
@@ -459,15 +525,6 @@ body {
     align-items: center;
     justify-content: center;
     margin-right: 12px;
-    transition: background-color 0.3s ease;
-}
-
-/* 主内容区域 */
-.main-content {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    background-color: var(--bg-primary);
     transition: background-color 0.3s ease;
 }
 
@@ -1378,8 +1435,21 @@ body {
         transform: translateX(0);
     }
     
+    .sidebar.collapsed {
+        transform: translateX(-100%);
+        width: 100%;
+    }
+    
     .main-content {
         width: 100%;
+    }
+    
+    .sidebar-expand-btn {
+        display: flex !important;
+    }
+    
+    .sidebar.collapsed + .main-content .sidebar-expand-btn {
+        display: flex !important;
     }
 }
 

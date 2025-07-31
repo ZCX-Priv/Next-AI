@@ -27,12 +27,17 @@
 <body>
     <div class="app-container">
         <!-- 侧边栏 -->
-        <div class="sidebar">
+        <div class="sidebar" id="sidebar">
             <div class="sidebar-header">
                 <h2>历史对话</h2>
-                <button class="new-chat-btn">
-                    <i class="fas fa-plus"></i>
-                </button>
+                <div class="sidebar-controls">
+                    <button class="new-chat-btn">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                    <button class="sidebar-toggle-btn" id="sidebarToggle">
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+                </div>
             </div>
             
             <div class="chat-history">
@@ -56,6 +61,11 @@
         <div class="main-content">
             <!-- 顶部模型选择 -->
             <div class="model-selector">
+                <!-- 展开侧边栏按钮（折叠时显示） -->
+                <button class="sidebar-expand-btn" id="sidebarExpand">
+                    <i class="fas fa-bars"></i>
+                </button>
+                
                 <div class="model-dropdown">
                     <button class="model-btn" id="modelBtn">
                         <span>选择模型</span>

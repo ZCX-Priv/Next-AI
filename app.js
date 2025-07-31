@@ -22,6 +22,7 @@ class ChatApp {
 
     init() {
         this.initializeTheme();
+        this.initializeSidebarState();
         this.initializeModelOptions();
         this.updateModelDisplay();
         this.bindEvents();
@@ -191,6 +192,23 @@ class ChatApp {
         if (settingsToggle) {
             settingsToggle.addEventListener('click', () => {
                 this.showSettingsModal();
+            });
+        }
+
+        // 侧边栏折叠功能
+        const sidebarToggle = document.getElementById('sidebarToggle');
+        const sidebarExpand = document.getElementById('sidebarExpand');
+        const sidebar = document.getElementById('sidebar');
+
+        if (sidebarToggle && sidebar) {
+            sidebarToggle.addEventListener('click', () => {
+                this.toggleSidebar();
+            });
+        }
+
+        if (sidebarExpand && sidebar) {
+            sidebarExpand.addEventListener('click', () => {
+                this.toggleSidebar();
             });
         }
 
@@ -2365,6 +2383,35 @@ c & d
         }
         
         this.addSystemMessage(`已切换到${this.isDarkMode ? '夜间' : '白昼'}模式`);
+    }
+
+    // 侧边栏折叠切换
+    toggleSidebar() {
+        const sidebar = document.getElementById('sidebar');
+        if (!sidebar) return;
+
+        const isCollapsed = sidebar.classList.contains('collapsed');
+        
+        if (isCollapsed) {
+            // 展开侧边栏
+            sidebar.classList.remove('collapsed');
+            localStorage.setItem('sidebarCollapsed', 'false');
+        } else {
+            // 折叠侧边栏
+            sidebar.classList.add('collapsed');
+            localStorage.setItem('sidebarCollapsed', 'true');
+        }
+    }
+
+    // 初始化侧边栏状态
+    initializeSidebarState() {
+        const sidebar = document.getElementById('sidebar');
+        if (!sidebar) return;
+
+        const isCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
+        if (isCollapsed) {
+            sidebar.classList.add('collapsed');
+        }
     }
 
     // 清空消息

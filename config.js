@@ -126,7 +126,7 @@ const API_CONFIG = {
             'deepseek/deepseek-chat-v3-0324:free',
             'deepseek/deepseek-r1-0528:free',
             'qwen/qwq-32b:free',
-            'qwen/qwen3-235b-a22b-2507:free',
+            'qwen/qwen3-235b-a22b:free',
             'z-ai/glm-4.5-air:free',
             'moonshotai/kimi-k2:free',
             'tencent/hunyuan-a13b-instruct:free'
@@ -135,7 +135,7 @@ const API_CONFIG = {
             'deepseek/deepseek-chat-v3-0324:free': 'DeepSeek V3',
             'deepseek/deepseek-r1-0528:free': 'DeepSeek R1',
             'qwen/qwq-32b:free': '通义千问 QwQ',
-            'qwen/qwen3-235b-a22b-2507:free': '通义千问 3.0',
+            'qwen/qwen3-235b-a22b:free': '通义千问 3.0',
             'z-ai/glm-4.5-air:free': 'GLM-4.5 Air',
             'moonshotai/kimi-k2:free': 'Kimi K2',
             'tencent/hunyuan-a13b-instruct:free': '混元 A13B'
