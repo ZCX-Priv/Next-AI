@@ -7,6 +7,7 @@ class ChatApp {
         this.currentModel = this.configManager.config.currentModel;
         this.messages = [];
         this.currentStreamInterval = null; // 当前流式传输间隔
+        this.currentAiMessageDiv = null; // 当前AI消息容器引用
         this.isDarkMode = this.getStoredTheme() === 'dark';
         this.selectedRoleId = null; // 角色选择模态框中选中的角色ID
         
@@ -130,13 +131,11 @@ class ChatApp {
         document.querySelector('.new-chat-btn').addEventListener('click', (e) => {
             if (e.target.closest('.new-chat-btn').querySelector('.fa-plus')) {
                 this.newChat();
-            } else if (e.target.closest('.new-chat-btn').querySelector('.fa-edit')) {
-                this.renameCurrentChat();
-            }
+            } 
         });
 
         // 清空列表
-        document.querySelector('.user-info').addEventListener('click', () => {
+        document.querySelector('.clearall').addEventListener('click', () => {
             this.clearChatHistory();
         });
 
@@ -204,15 +203,19 @@ class ChatApp {
     }
 
     // 显示API密钥输入提示
-    showApiKeyPrompt(provider) {
+    async showApiKeyPrompt(provider) {
         const providerConfig = API_CONFIG[provider];
-        const apiKey = prompt(`请输入 ${providerConfig.name} 的API密钥:`);
+        const apiKey = await this.showInputDialog(
+            `请输入 ${providerConfig.name} 的API密钥:`,
+            '',
+            '请输入API密钥'
+        );
         
         if (apiKey) {
             this.configManager.setApiKey(provider, apiKey);
-            this.addSystemMessage(`API密钥已设置，可以开始对话了！`);
+            this.addSystemMessage(`✅ API密钥已设置，可以开始对话了！`);
         } else {
-            this.addSystemMessage(`未设置API密钥，无法使用 ${providerConfig.name} 服务`);
+            this.addSystemMessage(`⚠️ 未设置API密钥，无法使用 ${providerConfig.name} 服务`);
         }
     }
 
@@ -222,6 +225,8 @@ class ChatApp {
         
         if (!message) return;
 
+        console.log('发送消息:', message);
+
         // 添加用户消息
         this.addMessage('user', message);
         messageInput.value = '';
@@ -229,6 +234,20 @@ class ChatApp {
 
         // 确保用户消息发送后滚动到底部
         this.optimizedScrollToBottom();
+
+        // 创建AI消息容器并显示思考指示器
+        console.log('创建AI消息容器...');
+        const aiMessageDiv = this.addMessage('assistant', '__THINKING__');
+        console.log('AI消息容器已创建:', aiMessageDiv);
+        
+        const messageContent = aiMessageDiv.querySelector('.message-content');
+        console.log('获取消息内容容器:', messageContent);
+        console.log('调用showThinkingIndicator...');
+        this.showThinkingIndicator(messageContent);
+        
+        // 保存AI消息容器的引用
+        this.currentAiMessageDiv = aiMessageDiv;
+        console.log('AI消息容器引用已保存');
 
         // 更新发送按钮状态
         const sendBtn = document.getElementById('sendBtn');
@@ -367,6 +386,7 @@ class ChatApp {
             }
         } finally {
             this.currentAbortController = null;
+            this.currentAiMessageDiv = null; // 清理AI消息容器引用
             this.resetSendButton();
         }
     }
@@ -446,11 +466,13 @@ class ChatApp {
         let lastUpdateTime = 0;
         const UPDATE_INTERVAL = 100; // 100ms更新一次，减少频繁更新
 
-        // 创建AI消息容器
-        const messageDiv = this.addMessage('assistant', '', false, true, 0); // 初始时长为0
+        // 使用已创建的AI消息容器
+        const messageDiv = this.currentAiMessageDiv;
         const messageContent = messageDiv.querySelector('.message-content');
 
         try {
+            let hasReceivedContent = false;
+            
             while (true) {
                 const { done, value } = await reader.read();
                 
@@ -476,11 +498,23 @@ class ChatApp {
                             if (delta?.reasoning) {
                                 isDeepSeekR1 = true;
                                 reasoningContent += delta.reasoning;
+                                
+                                // 首次收到内容时移除思考指示器
+                                if (!hasReceivedContent) {
+                                    this.hideThinkingIndicator(messageContent);
+                                    hasReceivedContent = true;
+                                }
                             }
                             
                             // 处理常规内容
                             if (delta?.content) {
                                 fullResponse += delta.content;
+                                
+                                // 首次收到内容时移除思考指示器
+                                if (!hasReceivedContent) {
+                                    this.hideThinkingIndicator(messageContent);
+                                    hasReceivedContent = true;
+                                }
                             }
                             
                             // 优化：限制更新频率
@@ -510,6 +544,9 @@ class ChatApp {
                     }
                 }
             }
+            
+            // 确保移除思考指示器
+            this.hideThinkingIndicator(messageContent);
             
             // 最终更新：确保所有内容都被渲染
             if (isDeepSeekR1 && reasoningContent) {
@@ -555,8 +592,21 @@ class ChatApp {
             this.optimizedScrollToBottom();
 
         } catch (error) {
-            console.error('流式响应处理错误:', error);
-            this.addSystemMessage('响应处理失败');
+            // 确保移除思考指示器
+            this.hideThinkingIndicator(messageContent);
+            
+            // 区分不同类型的错误
+            if (error.name === 'AbortError') {
+                console.log('请求被用户中止');
+                // 对于用户主动中止的请求，不显示错误消息
+                // 只是清理状态即可
+            } else {
+                console.error('流式响应处理错误:', error);
+                this.addSystemMessage('响应处理失败');
+            }
+        } finally {
+            // 清理AI消息容器引用
+            this.currentAiMessageDiv = null;
         }
     }
 
@@ -726,6 +776,103 @@ class ChatApp {
         sendBtn.innerHTML = '<i class="fas fa-paper-plane"></i>';
         sendBtn.classList.remove('stop-mode');
         sendBtn.disabled = false;
+    }
+
+    // 显示思考指示器
+    showThinkingIndicator(messageContent) {
+        console.log('showThinkingIndicator 被调用');
+        console.log('messageContent:', messageContent);
+        
+        // 检查是否已经存在思考指示器
+        const existingIndicator = messageContent.querySelector('.thinking-indicator');
+        if (existingIndicator) {
+            console.log('思考指示器已存在，跳过创建');
+            return;
+        }
+        
+        // 确保动画样式存在
+        if (!document.getElementById('thinking-animation-styles')) {
+            const style = document.createElement('style');
+            style.id = 'thinking-animation-styles';
+            style.textContent = `
+                @keyframes thinkingPulse {
+                    0%, 80%, 100% {
+                        transform: scale(0.6);
+                        opacity: 0.5;
+                    }
+                    40% {
+                        transform: scale(1);
+                        opacity: 1;
+                    }
+                }
+                @keyframes fadeInUp {
+                    from {
+                        opacity: 0;
+                        transform: translateY(10px);
+                    }
+                    to {
+                        opacity: 1;
+                        transform: translateY(0);
+                    }
+                }
+            `;
+            document.head.appendChild(style);
+        }
+        
+        const thinkingIndicator = document.createElement('div');
+        thinkingIndicator.className = 'thinking-indicator';
+        thinkingIndicator.style.cssText = `
+            display: flex !important;
+            align-items: center !important;
+            gap: 12px !important;
+            padding: 16px 20px !important;
+            margin: 8px 0 !important;
+            background: #f3f4f6 !important;
+            border-radius: 12px !important;
+            border: 1px solid #e5e7eb !important;
+            animation: fadeInUp 0.3s ease-out !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+        `;
+        thinkingIndicator.innerHTML = `
+            <div class="thinking-dots" style="display: flex !important; gap: 4px !important; align-items: center !important;">
+                <span class="dot" style="width: 8px !important; height: 8px !important; background: #3b82f6 !important; border-radius: 50% !important; animation: thinkingPulse 1.4s infinite ease-in-out !important; animation-delay: -0.32s !important;"></span>
+                <span class="dot" style="width: 8px !important; height: 8px !important; background: #3b82f6 !important; border-radius: 50% !important; animation: thinkingPulse 1.4s infinite ease-in-out !important; animation-delay: -0.16s !important;"></span>
+                <span class="dot" style="width: 8px !important; height: 8px !important; background: #3b82f6 !important; border-radius: 50% !important; animation: thinkingPulse 1.4s infinite ease-in-out !important; animation-delay: 0s !important;"></span>
+            </div>
+            <span class="thinking-text" style="font-size: 14px !important; color: #6b7280 !important; font-style: italic !important;">AI正在思考...</span>
+        `;
+        messageContent.appendChild(thinkingIndicator);
+        console.log('思考指示器已添加到DOM');
+        console.log('思考指示器元素:', thinkingIndicator);
+        
+        // 记录思考指示器显示时间
+        thinkingIndicator.dataset.showTime = Date.now();
+        
+        // 滚动到底部以显示思考指示器
+        this.optimizedScrollToBottom();
+    }
+
+    // 隐藏思考指示器
+    hideThinkingIndicator(messageContent) {
+        const thinkingIndicator = messageContent.querySelector('.thinking-indicator');
+        if (thinkingIndicator) {
+            const showTime = parseInt(thinkingIndicator.dataset.showTime) || 0;
+            const elapsedTime = Date.now() - showTime;
+            const minDisplayTime = 500; // 最少显示500ms
+            
+            if (elapsedTime < minDisplayTime) {
+                // 如果显示时间不足500ms，延迟移除
+                const remainingTime = minDisplayTime - elapsedTime;
+                setTimeout(() => {
+                    if (thinkingIndicator.parentNode) {
+                        thinkingIndicator.remove();
+                    }
+                }, remainingTime);
+            } else {
+                thinkingIndicator.remove();
+            }
+        }
     }
 
     addMessage(type, content, isStreaming = false, saveMessage = true, responseTime = null) {
@@ -959,6 +1106,241 @@ class ChatApp {
                 }
             }, 3000);
         }
+    }
+
+    // 自定义确认对话框
+    showConfirmDialog(message, onConfirm, onCancel = null) {
+        return new Promise((resolve) => {
+            const modal = document.createElement('div');
+            modal.className = 'custom-modal';
+            modal.innerHTML = `
+                <div class="modal-content confirm-dialog">
+                    <div class="modal-header">
+                        <div class="notification-icon">⚠️</div>
+                        <h3>确认操作</h3>
+                    </div>
+                    <div class="modal-body">
+                        <p>${message}</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn-secondary cancel-btn">取消</button>
+                        <button class="btn-primary confirm-btn">确认</button>
+                    </div>
+                </div>
+            `;
+
+            document.body.appendChild(modal);
+
+            const confirmBtn = modal.querySelector('.confirm-btn');
+            const cancelBtn = modal.querySelector('.cancel-btn');
+
+            const cleanup = () => {
+                modal.style.opacity = '0';
+                setTimeout(() => {
+                    if (modal.parentNode) {
+                        modal.remove();
+                    }
+                }, 300);
+            };
+
+            confirmBtn.addEventListener('click', () => {
+                cleanup();
+                if (onConfirm) onConfirm();
+                resolve(true);
+            });
+
+            cancelBtn.addEventListener('click', () => {
+                cleanup();
+                if (onCancel) onCancel();
+                resolve(false);
+            });
+
+            // 点击背景关闭
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    cleanup();
+                    if (onCancel) onCancel();
+                    resolve(false);
+                }
+            });
+
+            // ESC键关闭
+            const handleEsc = (e) => {
+                if (e.key === 'Escape') {
+                    cleanup();
+                    if (onCancel) onCancel();
+                    resolve(false);
+                    document.removeEventListener('keydown', handleEsc);
+                }
+            };
+            document.addEventListener('keydown', handleEsc);
+
+            // 显示动画
+            setTimeout(() => {
+                modal.style.opacity = '1';
+            }, 10);
+        });
+    }
+
+    // 自定义输入对话框
+    showInputDialog(message, defaultValue = '', placeholder = '') {
+        return new Promise((resolve) => {
+            const modal = document.createElement('div');
+            modal.className = 'custom-modal';
+            modal.innerHTML = `
+                <div class="modal-content input-dialog">
+                    <div class="modal-header">
+                        <div class="notification-icon">✏️</div>
+                        <h3>输入信息</h3>
+                    </div>
+                    <div class="modal-body">
+                        <p>${message}</p>
+                        <input type="text" class="input-field" value="${defaultValue}" placeholder="${placeholder}" />
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn-secondary cancel-btn">取消</button>
+                        <button class="btn-primary confirm-btn">确认</button>
+                    </div>
+                </div>
+            `;
+
+            document.body.appendChild(modal);
+
+            const confirmBtn = modal.querySelector('.confirm-btn');
+            const cancelBtn = modal.querySelector('.cancel-btn');
+            const inputField = modal.querySelector('.input-field');
+
+            const cleanup = () => {
+                modal.style.opacity = '0';
+                setTimeout(() => {
+                    if (modal.parentNode) {
+                        modal.remove();
+                    }
+                }, 300);
+            };
+
+            const handleConfirm = () => {
+                const value = inputField.value.trim();
+                cleanup();
+                resolve(value || null);
+            };
+
+            const handleCancel = () => {
+                cleanup();
+                resolve(null);
+            };
+
+            confirmBtn.addEventListener('click', handleConfirm);
+            cancelBtn.addEventListener('click', handleCancel);
+
+            // 回车确认
+            inputField.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    handleConfirm();
+                }
+            });
+
+            // 点击背景关闭
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    handleCancel();
+                }
+            });
+
+            // ESC键关闭
+            const handleEsc = (e) => {
+                if (e.key === 'Escape') {
+                    handleCancel();
+                    document.removeEventListener('keydown', handleEsc);
+                }
+            };
+            document.addEventListener('keydown', handleEsc);
+
+            // 显示动画并聚焦输入框
+            setTimeout(() => {
+                modal.style.opacity = '1';
+                inputField.focus();
+                inputField.select();
+            }, 10);
+        });
+    }
+
+    // 自定义警告对话框
+    showAlertDialog(message, type = 'error') {
+        return new Promise((resolve) => {
+            const icons = {
+                error: '❌',
+                warning: '⚠️',
+                info: 'ℹ️',
+                success: '✅'
+            };
+
+            const titles = {
+                error: '错误',
+                warning: '警告',
+                info: '提示',
+                success: '成功'
+            };
+
+            const modal = document.createElement('div');
+            modal.className = 'custom-modal';
+            modal.innerHTML = `
+                <div class="modal-content alert-dialog">
+                    <div class="modal-header">
+                        <div class="notification-icon">${icons[type]}</div>
+                        <h3>${titles[type]}</h3>
+                    </div>
+                    <div class="modal-body">
+                        <p>${message}</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn-primary confirm-btn">确定</button>
+                    </div>
+                </div>
+            `;
+
+            document.body.appendChild(modal);
+
+            const confirmBtn = modal.querySelector('.confirm-btn');
+
+            const cleanup = () => {
+                modal.style.opacity = '0';
+                setTimeout(() => {
+                    if (modal.parentNode) {
+                        modal.remove();
+                    }
+                }, 300);
+            };
+
+            const handleConfirm = () => {
+                cleanup();
+                resolve();
+            };
+
+            confirmBtn.addEventListener('click', handleConfirm);
+
+            // 点击背景关闭
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    handleConfirm();
+                }
+            });
+
+            // ESC键关闭
+            const handleEsc = (e) => {
+                if (e.key === 'Escape') {
+                    handleConfirm();
+                    document.removeEventListener('keydown', handleEsc);
+                }
+            };
+            document.addEventListener('keydown', handleEsc);
+
+            // 显示动画
+            setTimeout(() => {
+                modal.style.opacity = '1';
+                confirmBtn.focus();
+            }, 10);
+        });
     }
 
     simulateAIResponse(userMessage) {
@@ -1197,40 +1579,58 @@ c & d
         this.newChat();
     }
 
-    renameChat(chatId) {
+    async renameChat(chatId) {
         const chat = this.chatHistoryManager.getChatList().find(c => c.id === chatId);
         if (chat) {
-            const newTitle = prompt('请输入新的聊天名称：', chat.title);
+            const newTitle = await this.showInputDialog(
+                '请输入新的聊天名称：',
+                chat.title,
+                '聊天名称'
+            );
             if (newTitle && newTitle.trim()) {
                 this.chatHistoryManager.renameChat(chatId, newTitle.trim());
                 this.renderChatList();
+                this.addSystemMessage(`✅ 聊天已重命名为 "${newTitle.trim()}"`);
             }
         }
     }
 
-    deleteChat(chatId) {
+    async deleteChat(chatId) {
         const chat = this.chatHistoryManager.getChatList().find(c => c.id === chatId);
-        if (chat && confirm(`确定要删除聊天 "${chat.title}" 吗？`)) {
-            this.chatHistoryManager.deleteChat(chatId);
+        if (chat) {
+            const confirmed = await this.showConfirmDialog(
+                `确定要删除聊天 "${chat.title}" 吗？此操作不可撤销。`
+            );
             
-            // 如果删除的是当前聊天，切换到第一个聊天
-            if (this.chatHistoryManager.currentChatId === chatId) {
-                const chats = this.chatHistoryManager.getChatList();
-                if (chats.length > 0) {
-                    this.selectChat(chats[0].id);
+            if (confirmed) {
+                this.chatHistoryManager.deleteChat(chatId);
+                
+                // 如果删除的是当前聊天，切换到第一个聊天
+                if (this.chatHistoryManager.currentChatId === chatId) {
+                    const chats = this.chatHistoryManager.getChatList();
+                    if (chats.length > 0) {
+                        this.selectChat(chats[0].id);
+                    } else {
+                        this.newChat();
+                    }
                 } else {
-                    this.newChat();
+                    this.renderChatList();
                 }
-            } else {
-                this.renderChatList();
+                
+                this.addSystemMessage(`✅ 聊天 "${chat.title}" 已删除`);
             }
         }
     }
 
-    clearChatHistory() {
-        if (confirm('确定要清空所有聊天记录吗？此操作不可撤销。')) {
+    async clearChatHistory() {
+        const confirmed = await this.showConfirmDialog(
+            '确定要清空所有聊天记录吗？此操作不可撤销。'
+        );
+        
+        if (confirmed) {
             this.chatHistoryManager.clearAllChats();
             this.newChat();
+            this.addSystemMessage('✅ 所有聊天记录已清空');
         }
     }
 
@@ -1826,15 +2226,19 @@ c & d
     }
 
     // 清空消息
-    clearMessages() {
-        if (confirm('确定要清空所有消息吗？此操作不可撤销。')) {
+    async clearMessages() {
+        const confirmed = await this.showConfirmDialog(
+            '确定要清空所有消息吗？此操作不可撤销。'
+        );
+        
+        if (confirmed) {
             const messagesContainer = document.getElementById('messages');
             messagesContainer.innerHTML = '';
             this.messages = [];
             
             // 清空后重新加载欢迎消息
             this.loadWelcomeMessage();
-            this.addSystemMessage('消息已清空');
+            this.addSystemMessage('✅ 消息已清空');
         }
     }
 
@@ -1881,6 +2285,7 @@ c & d
     bindRoleModalEvents() {
         const modal = document.getElementById('roleModal');
         const addRoleModal = document.getElementById('addRoleModal');
+        const editRoleModal = document.getElementById('editRoleModal');
         const closeBtn = document.getElementById('roleCloseBtn');
         const cancelBtn = document.getElementById('roleCancelBtn');
         const confirmBtn = document.getElementById('roleConfirmBtn');
@@ -1893,6 +2298,11 @@ c & d
         const addRoleCancelBtn = document.getElementById('addRoleCancelBtn');
         const addRoleSaveBtn = document.getElementById('addRoleSaveBtn');
 
+        // 编辑角色模态框相关元素
+        const editRoleCloseBtn = document.getElementById('editRoleCloseBtn');
+        const editRoleCancelBtn = document.getElementById('editRoleCancelBtn');
+        const editRoleSaveBtn = document.getElementById('editRoleSaveBtn');
+
         // 关闭模态框
         const closeModal = () => {
             modal.style.display = 'none';
@@ -1903,6 +2313,11 @@ c & d
         const closeAddRoleModal = () => {
             addRoleModal.style.display = 'none';
             this.clearAddRoleForm();
+        };
+
+        const closeEditRoleModal = () => {
+            editRoleModal.style.display = 'none';
+            this.clearEditRoleForm();
         };
 
         // 点击背景关闭
@@ -1918,11 +2333,19 @@ c & d
             }
         });
 
+        editRoleModal.addEventListener('click', (e) => {
+            if (e.target === editRoleModal) {
+                closeEditRoleModal();
+            }
+        });
+
         // 关闭按钮
         closeBtn.addEventListener('click', closeModal);
         cancelBtn.addEventListener('click', closeModal);
         addRoleCloseBtn.addEventListener('click', closeAddRoleModal);
         addRoleCancelBtn.addEventListener('click', closeAddRoleModal);
+        editRoleCloseBtn.addEventListener('click', closeEditRoleModal);
+        editRoleCancelBtn.addEventListener('click', closeEditRoleModal);
 
         // 确认按钮
         confirmBtn.addEventListener('click', () => {
@@ -1941,6 +2364,11 @@ c & d
         // 保存新角色
         addRoleSaveBtn.addEventListener('click', () => {
             this.saveNewRole();
+        });
+
+        // 保存编辑的角色
+        editRoleSaveBtn.addEventListener('click', () => {
+            this.saveEditedRole();
         });
 
         // 搜索功能
@@ -1979,11 +2407,28 @@ c & d
         roles.forEach(role => {
             const roleItem = document.createElement('div');
             roleItem.className = 'role-item';
+            if (role.id.startsWith('custom_')) {
+                roleItem.classList.add('custom-role');
+            }
             roleItem.dataset.roleId = role.id;
             
             if (role.id === currentRole.id) {
                 roleItem.classList.add('selected');
                 this.selectedRoleId = role.id;
+            }
+            
+            let actionButtons = '';
+            if (role.id.startsWith('custom_')) {
+                actionButtons = `
+                    <div class="action-buttons">
+                        <button class="edit-role-btn" title="编辑角色" onclick="event.stopPropagation(); app.showEditRoleModal('${role.id}')">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="delete-role-btn" title="删除角色" onclick="event.stopPropagation(); app.deleteCustomRole('${role.id}')">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                `;
             }
             
             roleItem.innerHTML = `
@@ -1992,6 +2437,7 @@ c & d
                     <div class="role-name">${role.name}</div>
                     <div class="role-description">${role.description}</div>
                 </div>
+                ${actionButtons}
             `;
             
             roleList.appendChild(roleItem);
@@ -2035,8 +2481,8 @@ c & d
         const nameInput = document.getElementById('roleName');
         const saveBtn = document.getElementById('addRoleSaveBtn');
 
-        // 实时验证表单
-        const validateForm = () => {
+        // 实时验证添加角色表单
+        const validateAddForm = () => {
             const name = document.getElementById('roleName').value.trim();
             const description = document.getElementById('roleDescription').value.trim();
             const prompt = document.getElementById('rolePrompt').value.trim();
@@ -2044,11 +2490,11 @@ c & d
             saveBtn.disabled = !(name && description && prompt);
         };
 
-        // 监听输入变化
+        // 监听添加角色表单输入变化
         ['roleName', 'roleDescription', 'rolePrompt'].forEach(id => {
             const element = document.getElementById(id);
             if (element) {
-                element.addEventListener('input', validateForm);
+                element.addEventListener('input', validateAddForm);
             }
         });
 
@@ -2058,17 +2504,49 @@ c & d
                 this.saveNewRole();
             }
         });
+
+        // 绑定编辑角色表单事件
+        this.bindEditRoleFormEvents();
+    }
+
+    // 绑定编辑角色表单事件
+    bindEditRoleFormEvents() {
+        const editSaveBtn = document.getElementById('editRoleSaveBtn');
+
+        // 实时验证编辑角色表单
+        const validateEditForm = () => {
+            const name = document.getElementById('editRoleName').value.trim();
+            const description = document.getElementById('editRoleDescription').value.trim();
+            const prompt = document.getElementById('editRolePrompt').value.trim();
+            
+            editSaveBtn.disabled = !(name && description && prompt);
+        };
+
+        // 监听编辑角色表单输入变化
+        ['editRoleName', 'editRoleDescription', 'editRolePrompt'].forEach(id => {
+            const element = document.getElementById(id);
+            if (element) {
+                element.addEventListener('input', validateEditForm);
+            }
+        });
+
+        // 回车键保存
+        document.getElementById('editRoleName').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && !editSaveBtn.disabled) {
+                this.saveEditedRole();
+            }
+        });
     }
 
     // 保存新角色
-    saveNewRole() {
+    async saveNewRole() {
         const name = document.getElementById('roleName').value.trim();
         const avatar = document.getElementById('roleAvatar').value.trim() || '🤖';
         const description = document.getElementById('roleDescription').value.trim();
         const prompt = document.getElementById('rolePrompt').value.trim();
 
         if (!name || !description || !prompt) {
-            alert('请填写所有必填字段！');
+            await this.showAlertDialog('请填写所有必填字段！', 'warning');
             return;
         }
 
@@ -2085,14 +2563,14 @@ c & d
             this.clearAddRoleForm();
 
             // 显示成功消息
-            this.addSystemMessage(`新角色 "${newRole.name}" 添加成功！`);
+            this.addSystemMessage(`✅ 新角色 "${newRole.name}" 添加成功！`);
 
             // 重新加载角色列表
             this.loadRoleList();
 
         } catch (error) {
             console.error('添加角色失败:', error);
-            alert('添加角色失败，请重试！');
+            await this.showAlertDialog('添加角色失败，请重试！', 'error');
         }
     }
 
@@ -2126,11 +2604,18 @@ c & d
                 this.selectedRoleId = role.id;
             }
             
-            let deleteButton = '';
+            let actionButtons = '';
             if (role.id.startsWith('custom_')) {
-                deleteButton = `<button class="delete-role-btn" title="删除角色" onclick="event.stopPropagation(); app.deleteCustomRole('${role.id}')">
-                    <i class="fas fa-times"></i>
-                </button>`;
+                actionButtons = `
+                    <div class="action-buttons">
+                        <button class="edit-role-btn" title="编辑角色" onclick="event.stopPropagation(); app.showEditRoleModal('${role.id}')">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="delete-role-btn" title="删除角色" onclick="event.stopPropagation(); app.deleteCustomRole('${role.id}')">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                `;
             }
             
             roleItem.innerHTML = `
@@ -2139,7 +2624,7 @@ c & d
                     <div class="role-name">${role.name}</div>
                     <div class="role-description">${role.description}</div>
                 </div>
-                ${deleteButton}
+                ${actionButtons}
             `;
             
             roleList.appendChild(roleItem);
@@ -2149,20 +2634,95 @@ c & d
     }
 
     // 删除自定义角色
-    deleteCustomRole(roleId) {
+    async deleteCustomRole(roleId) {
         const role = this.roleManager.getRoleById(roleId);
         if (!role) return;
 
-        if (confirm(`确定要删除自定义角色 "${role.name}" 吗？此操作不可撤销。`)) {
+        const confirmed = await this.showConfirmDialog(
+            `确定要删除自定义角色 "${role.name}" 吗？此操作不可撤销。`
+        );
+        
+        if (confirmed) {
             try {
                 this.roleManager.removeCustomRole(roleId);
-                this.addSystemMessage(`角色 "${role.name}" 已删除`);
+                this.addSystemMessage(`✅ 角色 "${role.name}" 已删除`);
                 this.loadRoleList();
             } catch (error) {
                 console.error('删除角色失败:', error);
-                alert('删除角色失败，请重试！');
+                await this.showAlertDialog('删除角色失败，请重试！', 'error');
             }
         }
+    }
+
+    // 显示编辑角色模态框
+    showEditRoleModal(roleId) {
+        const role = this.roleManager.getRoleById(roleId);
+        if (!role || !role.id.startsWith('custom_')) {
+            return;
+        }
+
+        // 填充表单数据
+        document.getElementById('editRoleName').value = role.name;
+        document.getElementById('editRoleAvatar').value = role.avatar;
+        document.getElementById('editRoleDescription').value = role.description;
+        document.getElementById('editRolePrompt').value = role.prompt;
+
+        // 保存当前编辑的角色ID
+        this.editingRoleId = roleId;
+
+        // 显示模态框
+        const modal = document.getElementById('editRoleModal');
+        modal.style.display = 'flex';
+        document.getElementById('editRoleName').focus();
+    }
+
+    // 保存编辑的角色
+    async saveEditedRole() {
+        const name = document.getElementById('editRoleName').value.trim();
+        const avatar = document.getElementById('editRoleAvatar').value.trim() || '🤖';
+        const description = document.getElementById('editRoleDescription').value.trim();
+        const prompt = document.getElementById('editRolePrompt').value.trim();
+
+        if (!name || !description || !prompt) {
+            await this.showAlertDialog('请填写所有必填字段！', 'warning');
+            return;
+        }
+
+        try {
+            const updatedRole = this.roleManager.editCustomRole(this.editingRoleId, {
+                name,
+                avatar,
+                description,
+                prompt
+            });
+
+            if (updatedRole) {
+                // 关闭编辑角色模态框
+                document.getElementById('editRoleModal').style.display = 'none';
+                this.clearEditRoleForm();
+
+                // 显示成功消息
+                this.addSystemMessage(`✅ 角色 "${updatedRole.name}" 编辑成功！`);
+
+                // 重新加载角色列表
+                this.loadRoleList();
+            } else {
+                await this.showAlertDialog('编辑角色失败，请重试！', 'error');
+            }
+
+        } catch (error) {
+            console.error('编辑角色失败:', error);
+            await this.showAlertDialog('编辑角色失败，请重试！', 'error');
+        }
+    }
+
+    // 清空编辑角色表单
+    clearEditRoleForm() {
+        document.getElementById('editRoleName').value = '';
+        document.getElementById('editRoleAvatar').value = '';
+        document.getElementById('editRoleDescription').value = '';
+        document.getElementById('editRolePrompt').value = '';
+        this.editingRoleId = null;
     }
 
     // 重写过滤角色方法，支持自定义角色
@@ -2186,11 +2746,18 @@ c & d
                 this.selectedRoleId = role.id;
             }
             
-            let deleteButton = '';
+            let actionButtons = '';
             if (role.id.startsWith('custom_')) {
-                deleteButton = `<button class="delete-role-btn" title="删除角色" onclick="event.stopPropagation(); app.deleteCustomRole('${role.id}')">
-                    <i class="fas fa-times"></i>
-                </button>`;
+                actionButtons = `
+                    <div class="action-buttons">
+                        <button class="edit-role-btn" title="编辑角色" onclick="event.stopPropagation(); app.showEditRoleModal('${role.id}')">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="delete-role-btn" title="删除角色" onclick="event.stopPropagation(); app.deleteCustomRole('${role.id}')">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                `;
             }
             
             roleItem.innerHTML = `
@@ -2199,7 +2766,7 @@ c & d
                     <div class="role-name">${role.name}</div>
                     <div class="role-description">${role.description}</div>
                 </div>
-                ${deleteButton}
+                ${actionButtons}
             `;
             
             roleList.appendChild(roleItem);

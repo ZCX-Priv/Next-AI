@@ -8,16 +8,16 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     
     <!-- Markdown渲染和代码高亮依赖 -->
-    <script src="https://cdn.jsdelivr.net/npm/marked@9.1.6/marked.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/highlight.min.js"></script>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/github-dark.min.css">
+    <script src="./marked.min.js"></script>
+    <script src="./highlight.min.js"></script>
+    <link rel="stylesheet" href="./github-dark.min.css">
     
     <!-- 数学公式渲染 -->
     <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
     
     <!-- DOMPurify用于HTML安全转义 -->
-    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.5/dist/purify.min.js"></script>
+    <script src="./purify.min.js"></script>
     
     <script src="config.js"></script>
     <script src="roles.js"></script>
@@ -32,7 +32,6 @@
                 <h2>新建聊天</h2>
                 <button class="new-chat-btn">
                     <i class="fas fa-plus"></i>
-                    <i class="fas fa-edit"></i>
                 </button>
             </div>
             
@@ -44,9 +43,9 @@
             </div>
             
             <div class="sidebar-footer">
-                <div class="user-info">
+                <div class="clearall">
                     <div class="avatar">
-                        <i class="fas fa-user"></i>
+                        <i class="fas fa-trash"></i>
                     </div>
                     <span>清空列表</span>
                 </div>
@@ -154,6 +153,38 @@
             <div class="role-modal-footer">
                 <button class="role-btn role-btn-cancel" id="addRoleCancelBtn">取消</button>
                 <button class="role-btn role-btn-confirm" id="addRoleSaveBtn">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 编辑角色模态框 -->
+    <div class="role-modal" id="editRoleModal">
+        <div class="role-modal-content">
+            <div class="role-modal-header">
+                <h3 class="role-modal-title">编辑角色</h3>
+                <button class="role-close-btn" id="editRoleCloseBtn">&times;</button>
+            </div>
+            <div class="add-role-form">
+                <div class="form-group">
+                    <label for="editRoleName">角色名称 *</label>
+                    <input type="text" id="editRoleName" placeholder="请输入角色名称" maxlength="20">
+                </div>
+                <div class="form-group">
+                    <label for="editRoleAvatar">角色头像</label>
+                    <input type="text" id="editRoleAvatar" placeholder="请输入表情符号作为头像" maxlength="5">
+                </div>
+                <div class="form-group">
+                    <label for="editRoleDescription">角色描述 *</label>
+                    <textarea id="editRoleDescription" placeholder="请简要描述这个角色" rows="2" maxlength="100"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="editRolePrompt">系统提示词 *</label>
+                    <textarea id="editRolePrompt" placeholder="请输入这个角色的系统提示词，这将影响AI的回复风格" rows="4" maxlength="500"></textarea>
+                </div>
+            </div>
+            <div class="role-modal-footer">
+                <button class="role-btn role-btn-cancel" id="editRoleCancelBtn">取消</button>
+                <button class="role-btn role-btn-confirm" id="editRoleSaveBtn">保存</button>
             </div>
         </div>
     </div>

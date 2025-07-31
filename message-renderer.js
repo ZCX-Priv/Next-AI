@@ -73,6 +73,12 @@ class MessageRenderer {
         const codeBlocks = element.querySelectorAll('pre code');
         codeBlocks.forEach((codeBlock, index) => {
             const pre = codeBlock.parentElement;
+            
+            // 检查是否已经有wrapper，避免重复添加
+            if (pre.parentElement.classList.contains('code-block-wrapper')) {
+                return;
+            }
+            
             const wrapper = document.createElement('div');
             wrapper.className = 'code-block-wrapper';
             
@@ -97,16 +103,35 @@ class MessageRenderer {
         });
     }
 
+    // 手动高亮代码块
+    highlightCodeBlocks(element) {
+        if (typeof hljs !== 'undefined') {
+            const codeBlocks = element.querySelectorAll('pre code');
+            codeBlocks.forEach(block => {
+                if (!block.dataset.highlighted) {
+                    hljs.highlightElement(block);
+                }
+            });
+        }
+    }
+
     // 处理思考过程标签
     processThinkTags(text) {
         // 将<think>...</think>标签转换为可折叠的思考过程
         return text.replace(/<think>([\s\S]*?)<\/think>/g, (match, content) => {
-            const escapedContent = this.escapeHtml(content.trim());
+            const trimmedContent = content.trim();
+            
+            // 对think标签内的内容进行Markdown渲染
+            let processedContent = this.renderMath(trimmedContent);
+            if (typeof marked !== 'undefined') {
+                processedContent = marked.parse(processedContent);
+            }
+            
             return `
                 <div class="think-container">
                     <details class="think-details">
                         <summary class="think-summary">思考过程</summary>
-                        <div class="think-content">${escapedContent}</div>
+                        <div class="think-content">${processedContent}</div>
                     </details>
                 </div>
             `;
@@ -115,19 +140,34 @@ class MessageRenderer {
 
     // 渲染完整消息
     renderMessage(text, isStreaming = false) {
-        // 1. 处理思考过程标签
-        let processedText = this.processThinkTags(text);
+        let processedText = text;
         
-        // 2. HTML转义
-        processedText = this.escapeHtml(processedText);
+        // 1. 先分离think标签和普通内容
+        const thinkTags = [];
+        let thinkIndex = 0;
         
-        // 3. 渲染数学公式
+        // 提取think标签，用占位符替换
+        processedText = processedText.replace(/<think>([\s\S]*?)<\/think>/g, (match, content) => {
+            const placeholder = `__THINK_PLACEHOLDER_${thinkIndex}__`;
+            thinkTags[thinkIndex] = match;
+            thinkIndex++;
+            return placeholder;
+        });
+        
+        // 2. 渲染数学公式（在Markdown之前）
         processedText = this.renderMath(processedText);
         
-        // 4. 渲染Markdown
+        // 3. 渲染Markdown（包含代码高亮）
         if (typeof marked !== 'undefined') {
             processedText = marked.parse(processedText);
         }
+        
+        // 4. 恢复think标签并处理
+        thinkTags.forEach((thinkTag, index) => {
+            const placeholder = `__THINK_PLACEHOLDER_${index}__`;
+            const processedThink = this.processThinkTags(thinkTag);
+            processedText = processedText.replace(placeholder, processedThink);
+        });
         
         // 5. 使用DOMPurify清理HTML
         if (typeof DOMPurify !== 'undefined') {
@@ -135,7 +175,8 @@ class MessageRenderer {
                 ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 'code', 'pre', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 
                               'ul', 'ol', 'li', 'blockquote', 'a', 'span', 'div', 'table', 'thead', 'tbody', 'tr', 'td', 'th',
                               'details', 'summary'],
-                ALLOWED_ATTR: ['href', 'class', 'id', 'style']
+                ALLOWED_ATTR: ['href', 'class', 'id', 'style', 'data-highlighted'],
+                ALLOW_DATA_ATTR: false
             });
         }
         
@@ -164,6 +205,9 @@ class MessageRenderer {
                 const renderedContent = this.renderMessage(currentText, true);
                 element.innerHTML = renderedContent;
                 
+                // 手动高亮代码块
+                this.highlightCodeBlocks(element);
+                
                 // 添加代码块复制按钮
                 this.addCopyButtons(element);
                 
@@ -176,6 +220,9 @@ class MessageRenderer {
                 // 最终渲染（不带光标）
                 const finalContent = this.renderMessage(currentText, false);
                 element.innerHTML = finalContent;
+                
+                // 手动高亮代码块
+                this.highlightCodeBlocks(element);
                 
                 // 添加代码块复制按钮
                 this.addCopyButtons(element);
@@ -194,6 +241,11 @@ class MessageRenderer {
 
     // 立即渲染消息（非流式）- 优化版本
     renderInstant(element, text) {
+        // 如果是思考指示器标记，不进行渲染
+        if (text === '__THINKING__') {
+            return;
+        }
+        
         // 避免重复渲染相同内容
         if (element.dataset.lastContent === text) {
             return;
@@ -206,6 +258,9 @@ class MessageRenderer {
         // 使用requestAnimationFrame优化DOM更新
         requestAnimationFrame(() => {
             element.innerHTML = renderedContent;
+            
+            // 手动高亮代码块
+            this.highlightCodeBlocks(element);
             
             // 添加代码块复制按钮
             this.addCopyButtons(element);

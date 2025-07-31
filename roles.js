@@ -135,6 +135,24 @@ class RoleManager {
         return newRole;
     }
 
+    // 编辑自定义角色
+    editCustomRole(roleId, updatedRole) {
+        const index = this.customRoles.findIndex(role => role.id === roleId);
+        if (index !== -1) {
+            this.customRoles[index] = { ...this.customRoles[index], ...updatedRole };
+            this.saveCustomRoles();
+            
+            // 如果编辑的是当前角色，更新当前角色
+            if (this.currentRole.id === roleId) {
+                this.currentRole = this.customRoles[index];
+                this.saveCurrentRole();
+            }
+            
+            return this.customRoles[index];
+        }
+        return null;
+    }
+
     // 删除自定义角色
     removeCustomRole(roleId) {
         this.customRoles = this.customRoles.filter(role => role.id !== roleId);
