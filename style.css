@@ -1,3 +1,121 @@
+/* 系统通知样式 */
+.system-notification {
+    display: flex !important;
+    justify-content: center;
+    margin: 16px 0 !important;
+    animation: slideInDown 0.3s ease-out;
+}
+
+.notification-toast {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 500;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: all 0.3s ease;
+    max-width: 500px;
+    min-width: 200px;
+    position: relative;
+}
+
+.notification-toast.success {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.9), rgba(5, 150, 105, 0.9));
+    color: white;
+    border-color: rgba(16, 185, 129, 0.3);
+}
+
+.notification-toast.error {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.9), rgba(220, 38, 38, 0.9));
+    color: white;
+    border-color: rgba(239, 68, 68, 0.3);
+}
+
+.notification-toast.warning {
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.9), rgba(217, 119, 6, 0.9));
+    color: white;
+    border-color: rgba(245, 158, 11, 0.3);
+}
+
+.notification-toast.info {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.9), rgba(37, 99, 235, 0.9));
+    color: white;
+    border-color: rgba(59, 130, 246, 0.3);
+}
+
+.notification-icon {
+    font-size: 18px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+}
+
+.notification-content {
+    flex: 1;
+    line-height: 1.4;
+}
+
+.notification-close {
+    cursor: pointer;
+    font-size: 18px;
+    font-weight: bold;
+    opacity: 0.7;
+    transition: opacity 0.2s ease;
+    padding: 0 4px;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.notification-close:hover {
+    opacity: 1;
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+/* 通知动画 */
+@keyframes slideInDown {
+    from {
+        opacity: 0;
+        transform: translateY(-20px) scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+/* 夜间模式下的通知样式调整 */
+[data-theme="dark"] .notification-toast {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="dark"] .notification-toast.success {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.8), rgba(5, 150, 105, 0.8));
+}
+
+[data-theme="dark"] .notification-toast.error {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.8), rgba(220, 38, 38, 0.8));
+}
+
+[data-theme="dark"] .notification-toast.warning {
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.8), rgba(217, 119, 6, 0.8));
+}
+
+[data-theme="dark"] .notification-toast.info {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.8), rgba(37, 99, 235, 0.8));
+}
+
 /* 思考过程样式 */
 .think-container {
     margin: 12px 0;

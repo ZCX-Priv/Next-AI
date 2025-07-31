@@ -182,11 +182,11 @@ class ChatApp {
         // 检查API配置
         const validation = this.configManager.validateConfig(provider);
         if (!validation.valid) {
-            this.addSystemMessage(`⚠️ ${validation.error}`);
+            this.addSystemMessage(`${validation.error}`);
             this.showApiKeyPrompt(provider);
         } else {
             const providerConfig = this.configManager.getCurrentProvider();
-            this.addSystemMessage(`✅ 已切换到 ${providerConfig.name} - ${model}`);
+            this.addSystemMessage(`已切换到 ${providerConfig.name} - ${model}`);
         }
     }
 
@@ -210,9 +210,9 @@ class ChatApp {
         
         if (apiKey) {
             this.configManager.setApiKey(provider, apiKey);
-            this.addSystemMessage(`✅ API密钥已设置，可以开始对话了！`);
+            this.addSystemMessage(`API密钥已设置，可以开始对话了！`);
         } else {
-            this.addSystemMessage(`❌ 未设置API密钥，无法使用 ${providerConfig.name} 服务`);
+            this.addSystemMessage(`未设置API密钥，无法使用 ${providerConfig.name} 服务`);
         }
     }
 
@@ -280,7 +280,7 @@ class ChatApp {
         const provider = config.provider;
         
         if (!provider) {
-            this.addSystemMessage('❌ 没有可用的API提供商，请在设置中启用至少一个API');
+            this.addSystemMessage('没有可用的API提供商，请在设置中启用至少一个API');
             this.resetSendButton();
             return;
         }
@@ -288,7 +288,7 @@ class ChatApp {
         // 验证API配置
         const validation = this.configManager.validateConfig(config.currentProvider);
         if (!validation.valid) {
-            this.addSystemMessage(`❌ ${validation.error}`);
+            this.addSystemMessage(`${validation.error}`);
             this.showApiKeyPrompt(config.currentProvider);
             this.resetSendButton();
             return;
@@ -298,7 +298,7 @@ class ChatApp {
         if (config.currentProvider === 'openrouter') {
             const isValidKey = await this.validateApiKey(config.currentProvider);
             if (!isValidKey) {
-                this.addSystemMessage('❌ API密钥无效或已过期，请重新设置');
+                this.addSystemMessage('API密钥无效或已过期，请重新设置');
                 this.showApiKeyPrompt(config.currentProvider);
                 this.resetSendButton();
                 return;
@@ -355,10 +355,10 @@ class ChatApp {
 
         } catch (error) {
             if (error.name === 'AbortError') {
-                this.addSystemMessage('⏹️ 生成已停止');
+                this.addSystemMessage('生成已停止');
             } else {
                 console.error('API调用错误:', error);
-                this.addSystemMessage(`❌ API调用失败: ${error.message}`);
+                this.addSystemMessage(`API调用失败: ${error.message}`);
                 
                 // 如果是API密钥错误，提示用户重新设置
                 if (error.message.includes('401') || error.message.includes('403')) {
@@ -556,7 +556,7 @@ class ChatApp {
 
         } catch (error) {
             console.error('流式响应处理错误:', error);
-            this.addSystemMessage('❌ 响应处理失败');
+            this.addSystemMessage('响应处理失败');
         }
     }
 
@@ -867,7 +867,7 @@ class ChatApp {
         // 找到用户消息
         const userMessageDiv = messageDiv.previousElementSibling;
         if (!userMessageDiv || !userMessageDiv.classList.contains('user')) {
-            this.addSystemMessage('❌ 无法重新生成：找不到对应的用户消息');
+            this.addSystemMessage('无法重新生成：找不到对应的用户消息');
             return;
         }
 
@@ -907,16 +907,58 @@ class ChatApp {
     addSystemMessage(content) {
         const messagesContainer = document.getElementById('messages');
         const messageDiv = document.createElement('div');
-        messageDiv.className = 'message system';
-        messageDiv.style.textAlign = 'center';
-        messageDiv.style.color = 'var(--text-secondary)';
-        messageDiv.style.fontSize = '12px';
-        messageDiv.style.margin = '8px 0';
-        messageDiv.textContent = content;
+        messageDiv.className = 'message system-notification';
+        
+        // 根据消息内容确定类型和图标
+        let notificationType = 'info';
+        let icon = 'ℹ️';
+        
+        if (content.includes('✅') || content.includes('成功') || content.includes('已保存') || content.includes('已切换')) {
+            notificationType = 'success';
+            icon = '✅';
+        } else if (content.includes('❌') || content.includes('失败') || content.includes('错误') || content.includes('无效')) {
+            notificationType = 'error';
+            icon = '❌';
+        } else if (content.includes('⚠️') || content.includes('警告') || content.includes('注意')) {
+            notificationType = 'warning';
+            icon = '⚠️';
+        } else if (content.includes('🎨') || content.includes('🎭') || content.includes('🗑️') || content.includes('⏹️')) {
+            notificationType = 'info';
+            // 保持原有的emoji图标
+            icon = content.match(/^[🎨🎭🗑️⏹️✅❌⚠️]/)?.[0] || 'ℹ️';
+        }
+        
+        // 移除内容开头的emoji，因为我们会在通知框中显示
+        const cleanContent = content.replace(/^[🎨🎭🗑️⏹️✅❌⚠️]\s*/, '');
+        
+        messageDiv.innerHTML = `
+            <div class="notification-toast ${notificationType}">
+                <div class="notification-icon">${icon}</div>
+                <div class="notification-content">${cleanContent}</div>
+                <div class="notification-close" onclick="this.parentElement.parentElement.remove()">×</div>
+            </div>
+        `;
 
         messagesContainer.appendChild(messageDiv);
+        
+        // 自动滚动到底部
         const chatContainer = document.querySelector('.chat-container');
         chatContainer.scrollTop = chatContainer.scrollHeight;
+        
+        // 3秒后自动消失（除了错误消息）
+        if (notificationType !== 'error') {
+            setTimeout(() => {
+                if (messageDiv.parentNode) {
+                    messageDiv.style.opacity = '0';
+                    messageDiv.style.transform = 'translateY(-10px)';
+                    setTimeout(() => {
+                        if (messageDiv.parentNode) {
+                            messageDiv.remove();
+                        }
+                    }, 300);
+                }
+            }, 3000);
+        }
     }
 
     simulateAIResponse(userMessage) {
@@ -1214,13 +1256,6 @@ c & d
 - 点击设置按钮⚙️可以启用或禁用API提供商
 - 支持**Markdown**语法、\`代码高亮\`和数学公式 $E=mc^2$
 
-## 🚀 快速开始：
-试试输入以下命令来体验功能：
-- \`你能做什么\` - 查看详细功能介绍
-- \`代码示例\` - 查看代码高亮效果
-- \`数学公式\` - 查看数学公式渲染
-- \`markdown\` - 查看Markdown语法示例
-
 请输入您的问题开始对话吧！`;
 
             // 使用立即显示而不是流式显示
@@ -1504,7 +1539,7 @@ c & d
             document.body.removeChild(modal);
             document.head.removeChild(style);
 
-            this.addSystemMessage('✅ 设置已保存');
+            this.addSystemMessage('设置已保存');
         });
 
         document.body.appendChild(modal);
@@ -1742,7 +1777,7 @@ c & d
             document.body.removeChild(modal);
             document.head.removeChild(style);
 
-            this.addSystemMessage('✅ API设置已保存，当前模型已自动调整');
+            this.addSystemMessage('API设置已保存，当前模型已自动调整');
         });
 
         // 切换开关事件
@@ -1787,7 +1822,7 @@ c & d
             themeToggle.classList.remove('dark-mode');
         }
         
-        this.addSystemMessage(`🎨 已切换到${this.isDarkMode ? '夜间' : '白昼'}模式`);
+        this.addSystemMessage(`已切换到${this.isDarkMode ? '夜间' : '白昼'}模式`);
     }
 
     // 清空消息
@@ -1799,7 +1834,7 @@ c & d
             
             // 清空后重新加载欢迎消息
             this.loadWelcomeMessage();
-            this.addSystemMessage('🗑️ 消息已清空');
+            this.addSystemMessage('消息已清空');
         }
     }
 
@@ -1981,7 +2016,7 @@ c & d
     selectRole(roleId) {
         if (this.roleManager.setCurrentRole(roleId)) {
             const role = this.roleManager.getCurrentRole();
-            this.addSystemMessage(`🎭 已切换到角色：${role.name}`);
+            this.addSystemMessage(`已切换到角色：${role.name}`);
             
             // 可以在这里添加角色切换后的其他逻辑
             // 比如更新UI显示当前角色等
@@ -2050,7 +2085,7 @@ c & d
             this.clearAddRoleForm();
 
             // 显示成功消息
-            this.addSystemMessage(`✅ 新角色 "${newRole.name}" 添加成功！`);
+            this.addSystemMessage(`新角色 "${newRole.name}" 添加成功！`);
 
             // 重新加载角色列表
             this.loadRoleList();
@@ -2121,7 +2156,7 @@ c & d
         if (confirm(`确定要删除自定义角色 "${role.name}" 吗？此操作不可撤销。`)) {
             try {
                 this.roleManager.removeCustomRole(roleId);
-                this.addSystemMessage(`🗑️ 角色 "${role.name}" 已删除`);
+                this.addSystemMessage(`角色 "${role.name}" 已删除`);
                 this.loadRoleList();
             } catch (error) {
                 console.error('删除角色失败:', error);
