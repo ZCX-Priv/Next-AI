@@ -5,6 +5,7 @@ class ChatApp {
         this.messageRenderer = new MessageRenderer();
         this.chatHistoryManager = new ChatHistoryManager();
         this.currentModel = this.configManager.config.currentModel;
+        this.currentModelAlias = this.configManager.getCurrentModelAlias() || this.currentModel;
         this.messages = [];
         this.currentStreamInterval = null; // 当前流式传输间隔
         this.currentAiMessageDiv = null; // 当前AI消息容器引用
@@ -66,7 +67,10 @@ class ChatApp {
                 option.className = 'model-option';
                 option.dataset.model = model;
                 option.dataset.provider = provider.key;
-                option.textContent = `${provider.name} - ${model}`;
+                
+                // 获取模型别名
+                const modelAlias = this.configManager.getModelAlias(provider.key, model);
+                option.textContent = `${provider.name} - ${modelAlias}`;
                 
                 if (model === this.currentModel) {
                     option.classList.add('active');
@@ -168,6 +172,7 @@ class ChatApp {
         this.configManager.setProvider(provider);
         this.configManager.setModel(model);
         this.currentModel = model;
+        this.currentModelAlias = this.configManager.getCurrentModelAlias() || model;
         
         // 更新UI显示
         this.updateModelDisplay();
@@ -185,7 +190,8 @@ class ChatApp {
             this.showApiKeyPrompt(provider);
         } else {
             const providerConfig = this.configManager.getCurrentProvider();
-            this.addSystemMessage(`已切换到 ${providerConfig.name} - ${model}`);
+            const modelAlias = this.configManager.getModelAlias(provider, model);
+            this.addSystemMessage(`已切换到 ${providerConfig.name} - ${modelAlias}`);
         }
     }
 
@@ -196,7 +202,8 @@ class ChatApp {
         
         if (currentProvider && currentModel) {
             const providerConfig = this.configManager.getCurrentProvider();
-            document.querySelector('#modelBtn span').textContent = `${providerConfig.name} - ${currentModel}`;
+            const modelAlias = this.configManager.getCurrentModelAlias();
+            document.querySelector('#modelBtn span').textContent = `${providerConfig.name} - ${modelAlias}`;
         } else {
             document.querySelector('#modelBtn span').textContent = '选择模型';
         }
@@ -1344,10 +1351,12 @@ class ChatApp {
     }
 
     simulateAIResponse(userMessage) {
+        const currentModelAlias = this.configManager.getCurrentModelAlias() || this.currentModel;
+        
         const responses = {
             '你好': '您好！我是AI助手，很高兴为您服务。有什么我可以帮助您的吗？',
-            '你是谁': `我是**${this.currentModel}**，一个AI助手。我可以帮助您回答问题、提供信息和进行对话。`,
-            '你是哪个公司的哪个模型': `我是**${this.currentModel}**模型。我可以帮助您处理各种任务，包括：\n\n- 回答问题\n- 文本生成\n- 代码编写\n- 数据分析`,
+            '你是谁': `我是**${currentModelAlias}**，一个AI助手。我可以帮助您回答问题、提供信息和进行对话。`,
+            '你是哪个公司的哪个模型': `我是**${currentModelAlias}**模型。我可以帮助您处理各种任务，包括：\n\n- 回答问题\n- 文本生成\n- 代码编写\n- 数据分析`,
             '你能做什么': `我可以帮助您：
 
 ## 📝 文本处理
@@ -1427,7 +1436,7 @@ c & d
 [这是一个链接](https://example.com)`
         };
 
-        let response = responses[userMessage] || `我理解您说的是"${userMessage}"。作为**${this.currentModel}**，我会尽力为您提供帮助。
+        let response = responses[userMessage] || `我理解您说的是"${userMessage}"。作为**${currentModelAlias}**，我会尽力为您提供帮助。
 
 请告诉我您需要什么具体的协助？我可以：
 - 回答问题
@@ -1638,10 +1647,11 @@ c & d
         setTimeout(() => {
             const currentProvider = this.configManager.getCurrentProvider();
             const providerName = currentProvider ? currentProvider.name : 'OpenAI';
+            const currentModelAlias = this.configManager.getCurrentModelAlias() || this.currentModel;
             
             let welcomeMessage = `# 欢迎使用AI助手！
 
-**当前配置：** ${providerName} - ${this.currentModel}
+**当前配置：** ${providerName} - ${currentModelAlias}
 
 ## 我可以帮助您：
 - 📝 回答各种问题
@@ -2161,6 +2171,7 @@ c & d
             
             // 更新当前模型
             this.currentModel = this.configManager.config.currentModel;
+            this.currentModelAlias = this.configManager.getCurrentModelAlias() || this.currentModel;
             
             // 重新初始化模型选项
             this.initializeModelOptions();
@@ -2171,7 +2182,8 @@ c & d
             // 更新模型按钮显示
             const currentProvider = this.configManager.getCurrentProvider();
             if (currentProvider) {
-                document.querySelector('#modelBtn span').textContent = `${currentProvider.name} - ${this.currentModel}`;
+                const currentModelAlias = this.configManager.getCurrentModelAlias() || this.currentModel;
+                document.querySelector('#modelBtn span').textContent = `${currentProvider.name} - ${currentModelAlias}`;
             }
 
             document.body.removeChild(modal);

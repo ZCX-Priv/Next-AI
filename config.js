@@ -12,6 +12,12 @@ const API_CONFIG = {
             'gpt-3.5-turbo',
             'gpt-3.5-turbo-16k'
         ],
+        modelAliases: {
+            'gpt-4-turbo-preview': 'GPT-4 Turbo',
+            'gpt-4': 'GPT-4',
+            'gpt-3.5-turbo': 'GPT-3.5 Turbo',
+            'gpt-3.5-turbo-16k': 'GPT-3.5 Turbo 16K'
+        },
         headers: {
             'Content-Type': 'application/json',
             'Authorization': 'Bearer {API_KEY}'
@@ -30,6 +36,12 @@ const API_CONFIG = {
             'gemini-1.5-pro',
             'gemini-1.5-flash'
         ],
+        modelAliases: {
+            'gemini-pro': 'Gemini Pro',
+            'gemini-pro-vision': 'Gemini Pro Vision',
+            'gemini-1.5-pro': 'Gemini 1.5 Pro',
+            'gemini-1.5-flash': 'Gemini 1.5 Flash'
+        },
         headers: {
             'Content-Type': 'application/json'
         }
@@ -48,6 +60,13 @@ const API_CONFIG = {
             'claude-2.1',
             'claude-2.0'
         ],
+        modelAliases: {
+            'claude-3-opus-20240229': 'Claude 3 Opus',
+            'claude-3-sonnet-20240229': 'Claude 3 Sonnet',
+            'claude-3-haiku-20240307': 'Claude 3 Haiku',
+            'claude-2.1': 'Claude 2.1',
+            'claude-2.0': 'Claude 2.0'
+        },
         headers: {
             'Content-Type': 'application/json',
             'x-api-key': '{API_KEY}',
@@ -66,6 +85,11 @@ const API_CONFIG = {
             'deepseek-coder',
             'deepseek-math'
         ],
+        modelAliases: {
+            'deepseek-chat': 'DeepSeek Chat',
+            'deepseek-coder': 'DeepSeek Coder',
+            'deepseek-math': 'DeepSeek Math'
+        },
         headers: {
             'Content-Type': 'application/json',
             'Authorization': 'Bearer {API_KEY}'
@@ -82,6 +106,10 @@ const API_CONFIG = {
             'grok-beta',
             'grok-vision-beta'
         ],
+        modelAliases: {
+            'grok-beta': 'Grok Beta',
+            'grok-vision-beta': 'Grok Vision Beta'
+        },
         headers: {
             'Content-Type': 'application/json',
             'Authorization': 'Bearer {API_KEY}'
@@ -103,6 +131,15 @@ const API_CONFIG = {
             'moonshotai/kimi-k2:free',
             'tencent/hunyuan-a13b-instruct:free'
         ],
+        modelAliases: {
+            'deepseek/deepseek-chat-v3-0324:free': 'DeepSeek V3',
+            'deepseek/deepseek-r1-0528:free': 'DeepSeek R1',
+            'qwen/qwq-32b:free': '通义千问 QwQ',
+            'qwen/qwen3-235b-a22b-2507:free': '通义千问 3.0',
+            'z-ai/glm-4.5-air:free': 'GLM-4.5 Air',
+            'moonshotai/kimi-k2:free': 'Kimi K2',
+            'tencent/hunyuan-a13b-instruct:free': '混元 A13B'
+        },
         headers: {
             'Content-Type': 'application/json',
             'Authorization': 'Bearer {API_KEY}',
@@ -126,6 +163,15 @@ const API_CONFIG = {
             'mistral',
             'phi'
         ],
+        modelAliases: {
+            'openai': 'OpenAI',
+            'openai-fast': 'OpenAI Fast',
+            'openai-reasoning': 'OpenAI Reasoner',
+            'deepseek-reasoning': 'DeepSeek Reasoner',
+            'grok': 'Grok-3',
+            'mistral': 'Mistral AI',
+            'phi': 'Phi-4'
+        },
         headers: {
             'Content-Type': 'application/json'
         }
@@ -144,6 +190,13 @@ const API_CONFIG = {
             'neural-chat',
             'starcode'
         ],
+        modelAliases: {
+            'llama2': 'Llama 2',
+            'codellama': 'Code Llama',
+            'mistral': 'Mistral',
+            'neural-chat': 'Neural Chat',
+            'starcode': 'StarCode'
+        },
         headers: {
             'Content-Type': 'application/json'
         }
@@ -358,6 +411,23 @@ class ConfigManager {
     // 获取API密钥
     getApiKey(provider) {
         return API_CONFIG[provider]?.apiKey || '';
+    }
+
+    // 获取模型别名
+    getModelAlias(provider, model) {
+        const providerConfig = API_CONFIG[provider];
+        if (!providerConfig || !providerConfig.modelAliases) {
+            return model; // 如果没有别名配置，返回原始模型名
+        }
+        return providerConfig.modelAliases[model] || model;
+    }
+
+    // 获取当前模型的别名
+    getCurrentModelAlias() {
+        if (!this.config.currentProvider || !this.config.currentModel) {
+            return '';
+        }
+        return this.getModelAlias(this.config.currentProvider, this.config.currentModel);
     }
 
     // 获取请求头
