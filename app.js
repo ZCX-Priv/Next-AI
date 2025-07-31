@@ -31,14 +31,17 @@ class ChatApp {
 
     // 初始化主题
     initializeTheme() {
+        const themeToggle = document.getElementById('themeToggle');
+        if (!themeToggle) return; // 如果找不到元素，直接返回
+        
         if (this.isDarkMode) {
             document.documentElement.setAttribute('data-theme', 'dark');
-            document.getElementById('themeToggle').innerHTML = '<i class="fas fa-moon"></i>';
-            document.getElementById('themeToggle').classList.add('dark-mode');
+            themeToggle.innerHTML = '<i class="fas fa-moon"></i>';
+            themeToggle.classList.add('dark-mode');
         } else {
             document.documentElement.setAttribute('data-theme', 'light');
-            document.getElementById('themeToggle').innerHTML = '<i class="fas fa-sun"></i>';
-            document.getElementById('themeToggle').classList.remove('dark-mode');
+            themeToggle.innerHTML = '<i class="fas fa-sun"></i>';
+            themeToggle.classList.remove('dark-mode');
         }
     }
 
@@ -55,6 +58,8 @@ class ChatApp {
     // 初始化模型选项
     initializeModelOptions() {
         const modelOptions = document.getElementById('modelOptions');
+        if (!modelOptions) return; // 如果找不到元素，直接返回
+        
         const providers = this.configManager.getProviders();
         
         // 清空现有选项
@@ -86,9 +91,18 @@ class ChatApp {
         const modelBtn = document.getElementById('modelBtn');
         const modelOptions = document.getElementById('modelOptions');
         
-        modelBtn.addEventListener('click', () => {
-            modelOptions.classList.toggle('show');
-        });
+        if (modelBtn && modelOptions) {
+            modelBtn.addEventListener('click', () => {
+                modelOptions.classList.toggle('show');
+            });
+
+            // 点击外部关闭下拉菜单
+            document.addEventListener('click', (e) => {
+                if (!modelBtn.contains(e.target) && !modelOptions.contains(e.target)) {
+                    modelOptions.classList.remove('show');
+                }
+            });
+        }
 
         // 点击模型选项
         document.querySelectorAll('.model-option').forEach(option => {
@@ -96,72 +110,89 @@ class ChatApp {
                 const model = e.target.dataset.model;
                 const provider = e.target.dataset.provider;
                 this.selectModel(model, provider);
-                modelOptions.classList.remove('show');
+                if (modelOptions) {
+                    modelOptions.classList.remove('show');
+                }
             });
-        });
-
-        // 点击外部关闭下拉菜单
-        document.addEventListener('click', (e) => {
-            if (!modelBtn.contains(e.target) && !modelOptions.contains(e.target)) {
-                modelOptions.classList.remove('show');
-            }
         });
 
         // 发送消息事件
         const sendBtn = document.getElementById('sendBtn');
         const messageInput = document.getElementById('messageInput');
 
-        sendBtn.addEventListener('click', () => {
-            if (sendBtn.classList.contains('stop-mode')) {
-                this.stopGeneration();
-            } else {
-                this.sendMessage();
-            }
-        });
+        if (sendBtn) {
+            sendBtn.addEventListener('click', () => {
+                if (sendBtn.classList.contains('stop-mode')) {
+                    this.stopGeneration();
+                } else {
+                    this.sendMessage();
+                }
+            });
+        }
 
-        messageInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                this.sendMessage();
-            }
-        });
+        if (messageInput) {
+            messageInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    this.sendMessage();
+                }
+            });
 
-        // 自动调整输入框高度
-        messageInput.addEventListener('input', () => {
-            this.adjustTextareaHeight(messageInput);
-        });
+            // 自动调整输入框高度
+            messageInput.addEventListener('input', () => {
+                this.adjustTextareaHeight(messageInput);
+            });
+        }
 
         // 新建聊天按钮
-        document.querySelector('.new-chat-btn').addEventListener('click', (e) => {
-            if (e.target.closest('.new-chat-btn').querySelector('.fa-plus')) {
-                this.newChat();
-            } 
-        });
+        const newChatBtn = document.querySelector('.new-chat-btn');
+        if (newChatBtn) {
+            newChatBtn.addEventListener('click', (e) => {
+                if (e.target.closest('.new-chat-btn').querySelector('.fa-plus')) {
+                    this.newChat();
+                } 
+            });
+        }
 
         // 清空列表
-        document.querySelector('.clearall').addEventListener('click', () => {
-            this.clearChatHistory();
-        });
+        const clearAllBtn = document.querySelector('.clearall');
+        if (clearAllBtn) {
+            clearAllBtn.addEventListener('click', () => {
+                this.clearChatHistory();
+            });
+        }
 
         // 主题切换按钮
-        document.getElementById('themeToggle').addEventListener('click', () => {
-            this.toggleTheme();
-        });
+        const themeToggle = document.getElementById('themeToggle');
+        if (themeToggle) {
+            themeToggle.addEventListener('click', () => {
+                this.toggleTheme();
+            });
+        }
 
         // 角色选择按钮
-        document.getElementById('roleSelector').addEventListener('click', () => {
-            this.showRoleModal();
-        });
+        const roleSelector = document.getElementById('roleSelector');
+        if (roleSelector) {
+            roleSelector.addEventListener('click', () => {
+                this.showRoleModal();
+            });
+        }
 
         // 清空消息按钮
-        document.getElementById('clearMessages').addEventListener('click', () => {
-            this.clearMessages();
-        });
+        const clearMessages = document.getElementById('clearMessages');
+        if (clearMessages) {
+            clearMessages.addEventListener('click', () => {
+                this.clearMessages();
+            });
+        }
 
         // 设置按钮（右上角）
-        document.getElementById('settingsToggle').addEventListener('click', () => {
-            this.showSettingsModal();
-        });
+        const settingsToggle = document.getElementById('settingsToggle');
+        if (settingsToggle) {
+            settingsToggle.addEventListener('click', () => {
+                this.showSettingsModal();
+            });
+        }
 
         // 角色模态框事件
         this.bindRoleModalEvents();
@@ -181,7 +212,10 @@ class ChatApp {
         document.querySelectorAll('.model-option').forEach(option => {
             option.classList.remove('active');
         });
-        document.querySelector(`[data-model="${model}"][data-provider="${provider}"]`).classList.add('active');
+        const selectedOption = document.querySelector(`[data-model="${model}"][data-provider="${provider}"]`);
+        if (selectedOption) {
+            selectedOption.classList.add('active');
+        }
         
         // 检查API配置
         const validation = this.configManager.validateConfig(provider);
@@ -199,13 +233,16 @@ class ChatApp {
     updateModelDisplay() {
         const currentProvider = this.configManager.config.currentProvider;
         const currentModel = this.configManager.config.currentModel;
+        const modelBtnSpan = document.querySelector('#modelBtn span');
+        
+        if (!modelBtnSpan) return; // 如果找不到元素，直接返回
         
         if (currentProvider && currentModel) {
             const providerConfig = this.configManager.getCurrentProvider();
             const modelAlias = this.configManager.getCurrentModelAlias();
-            document.querySelector('#modelBtn span').textContent = `${providerConfig.name} - ${modelAlias}`;
+            modelBtnSpan.textContent = `${providerConfig.name} - ${modelAlias}`;
         } else {
-            document.querySelector('#modelBtn span').textContent = '选择模型';
+            modelBtnSpan.textContent = '选择模型';
         }
     }
 
@@ -2181,9 +2218,10 @@ c & d
             
             // 更新模型按钮显示
             const currentProvider = this.configManager.getCurrentProvider();
-            if (currentProvider) {
+            const modelBtnSpan = document.querySelector('#modelBtn span');
+            if (currentProvider && modelBtnSpan) {
                 const currentModelAlias = this.configManager.getCurrentModelAlias() || this.currentModel;
-                document.querySelector('#modelBtn span').textContent = `${currentProvider.name} - ${currentModelAlias}`;
+                modelBtnSpan.textContent = `${currentProvider.name} - ${currentModelAlias}`;
             }
 
             document.body.removeChild(modal);
@@ -2212,7 +2250,9 @@ c & d
                 const model = e.target.dataset.model;
                 const provider = e.target.dataset.provider;
                 this.selectModel(model, provider);
-                modelOptions.classList.remove('show');
+                if (modelOptions) {
+                    modelOptions.classList.remove('show');
+                }
             });
         });
     }
@@ -2226,12 +2266,14 @@ c & d
         this.saveTheme(theme);
         
         const themeToggle = document.getElementById('themeToggle');
-        if (this.isDarkMode) {
-            themeToggle.innerHTML = '<i class="fas fa-moon"></i>';
-            themeToggle.classList.add('dark-mode');
-        } else {
-            themeToggle.innerHTML = '<i class="fas fa-sun"></i>';
-            themeToggle.classList.remove('dark-mode');
+        if (themeToggle) {
+            if (this.isDarkMode) {
+                themeToggle.innerHTML = '<i class="fas fa-moon"></i>';
+                themeToggle.classList.add('dark-mode');
+            } else {
+                themeToggle.innerHTML = '<i class="fas fa-sun"></i>';
+                themeToggle.classList.remove('dark-mode');
+            }
         }
         
         this.addSystemMessage(`已切换到${this.isDarkMode ? '夜间' : '白昼'}模式`);
@@ -2245,7 +2287,9 @@ c & d
         
         if (confirmed) {
             const messagesContainer = document.getElementById('messages');
-            messagesContainer.innerHTML = '';
+            if (messagesContainer) {
+                messagesContainer.innerHTML = '';
+            }
             this.messages = [];
             
             // 清空后重新加载欢迎消息
@@ -2257,13 +2301,17 @@ c & d
     // 显示角色选择模态框
     showRoleModal() {
         const modal = document.getElementById('roleModal');
-        this.loadRoleList();
-        modal.style.display = 'flex';
+        if (modal) {
+            this.loadRoleList();
+            modal.style.display = 'flex';
+        }
     }
 
     // 加载角色列表
     loadRoleList() {
         const roleList = document.getElementById('roleList');
+        if (!roleList) return;
+        
         const roles = this.roleManager.getAllRoles();
         const currentRole = this.roleManager.getCurrentRole();
         
