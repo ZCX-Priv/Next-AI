@@ -2568,6 +2568,9 @@ c & d
             // 重新加载角色列表
             this.loadRoleList();
 
+            // 返回到角色选择模态框
+            document.getElementById('roleModal').style.display = 'flex';
+
         } catch (error) {
             console.error('添加角色失败:', error);
             await this.showAlertDialog('添加角色失败，请重试！', 'error');
@@ -2706,6 +2709,9 @@ c & d
 
                 // 重新加载角色列表
                 this.loadRoleList();
+
+                // 返回到角色选择模态框
+                document.getElementById('roleModal').style.display = 'flex';
             } else {
                 await this.showAlertDialog('编辑角色失败，请重试！', 'error');
             }
