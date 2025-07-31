@@ -884,7 +884,7 @@ class ChatApp {
                 <span class="dot" style="width: 8px !important; height: 8px !important; background: #3b82f6 !important; border-radius: 50% !important; animation: thinkingPulse 1.4s infinite ease-in-out !important; animation-delay: -0.16s !important;"></span>
                 <span class="dot" style="width: 8px !important; height: 8px !important; background: #3b82f6 !important; border-radius: 50% !important; animation: thinkingPulse 1.4s infinite ease-in-out !important; animation-delay: 0s !important;"></span>
             </div>
-            <span class="thinking-text" style="font-size: 14px !important; color: #6b7280 !important; font-style: italic !important;">AI正在思考...</span>
+            <span class="thinking-text" style="font-size: 14px !important; font-style: italic !important;">AI正在思考...</span>
         `;
         messageContent.appendChild(thinkingIndicator);
         console.log('思考指示器已添加到DOM');
@@ -919,7 +919,7 @@ class ChatApp {
         }
     }
 
-    addMessage(type, content, isStreaming = false, saveMessage = true, responseTime = null) {
+    addMessage(type, content, isStreaming = false, saveMessage = true, responseTime = null, showActions = true) {
         const messagesContainer = document.getElementById('messages');
         const messageDiv = document.createElement('div');
         messageDiv.className = `message ${type}`;
@@ -932,8 +932,8 @@ class ChatApp {
         const messageContent = document.createElement('div');
         messageContent.className = 'message-content';
 
-        // 添加消息操作按钮（仅AI消息）
-        if (type === 'assistant') {
+        // 添加消息操作按钮（仅AI消息且showActions为true）
+        if (type === 'assistant' && showActions) {
             const actionButtons = document.createElement('div');
             actionButtons.className = 'message-actions';
             actionButtons.innerHTML = `
@@ -974,7 +974,9 @@ class ChatApp {
                 () => {
                     // 流式传输完成后的回调
                     this.currentStreamInterval = null;
-                    this.bindMessageActions(messageDiv);
+                    if (showActions) {
+                        this.bindMessageActions(messageDiv);
+                    }
                 }
             );
         } else {
@@ -986,7 +988,7 @@ class ChatApp {
                 this.messageRenderer.renderInstant(messageContent, content);
             }
             
-            if (type === 'assistant') {
+            if (type === 'assistant' && showActions) {
                 this.bindMessageActions(messageDiv);
             }
         }
@@ -1064,17 +1066,31 @@ class ChatApp {
 
         const userMessage = userMessageDiv.querySelector('.message-content').textContent;
         
-        // 从消息数组中移除这两条消息
+        // 只删除AI消息的DOM元素和数组中的记录
         const messageIndex = Array.from(messageDiv.parentNode.children).indexOf(messageDiv);
-        if (messageIndex > 0) {
-            this.messages.splice(messageIndex - 1, 2);
+        if (messageIndex >= 0) {
+            // 只移除AI消息，保留用户消息
+            this.messages.splice(messageIndex, 1);
         }
 
-        // 删除DOM元素
-        userMessageDiv.remove();
+        // 只删除AI消息的DOM元素，保留用户消息
         messageDiv.remove();
 
-        // 重新发送消息
+        // 创建新的AI消息容器并显示思考指示器
+        const aiMessageDiv = this.addMessage('assistant', '__THINKING__');
+        const messageContent = aiMessageDiv.querySelector('.message-content');
+        this.showThinkingIndicator(messageContent);
+        
+        // 保存AI消息容器的引用
+        this.currentAiMessageDiv = aiMessageDiv;
+
+        // 更新发送按钮状态
+        const sendBtn = document.getElementById('sendBtn');
+        sendBtn.innerHTML = '<i class="fas fa-stop"></i>';
+        sendBtn.classList.add('stop-mode');
+        sendBtn.disabled = false;
+
+        // 重新调用AI
         this.callAI(userMessage);
     }
 
@@ -1596,7 +1612,9 @@ c & d
         
         // 渲染所有消息
         this.messages.forEach(msg => {
-            this.addMessage(msg.type, msg.content, false, false, msg.responseTime);
+            // 对于AI消息，显示操作按钮；对于用户消息，不显示
+            const showActions = msg.type === 'assistant';
+            this.addMessage(msg.type, msg.content, false, false, msg.responseTime, showActions);
         });
         
         this.renderChatList();
@@ -1705,8 +1723,8 @@ c & d
 
 请输入您的问题开始对话吧！`;
 
-            // 使用立即显示而不是流式显示
-            this.addMessage('assistant', welcomeMessage, false);
+            // 使用立即显示而不是流式显示，且不显示操作按钮
+            this.addMessage('assistant', welcomeMessage, false, true, null, false);
         }, 500);
     }
 
