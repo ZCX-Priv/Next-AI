@@ -232,6 +232,40 @@ class ChatApp {
         this.callAI(message);
     }
 
+    // 验证API密钥
+    async validateApiKey(provider) {
+        const providerConfig = this.configManager.getCurrentProvider();
+        if (!providerConfig) return false;
+
+        try {
+            // 对于OpenRouter，使用专门的验证端点
+            if (provider === 'openrouter') {
+                const response = await fetch('https://openrouter.ai/api/v1/key', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${providerConfig.apiKey}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log('API密钥验证成功:', data);
+                    return true;
+                } else {
+                    console.error('API密钥验证失败:', response.status, response.statusText);
+                    return false;
+                }
+            }
+            
+            // 对于其他提供商，可以添加相应的验证逻辑
+            return true;
+        } catch (error) {
+            console.error('API密钥验证错误:', error);
+            return false;
+        }
+    }
+
     async callAI(userMessage) {
         const startTime = Date.now();
         const config = this.configManager.getConfig();
@@ -250,6 +284,17 @@ class ChatApp {
             this.showApiKeyPrompt(config.currentProvider);
             this.resetSendButton();
             return;
+        }
+
+        // 验证API密钥是否有效（仅对OpenRouter）
+        if (config.currentProvider === 'openrouter') {
+            const isValidKey = await this.validateApiKey(config.currentProvider);
+            if (!isValidKey) {
+                this.addSystemMessage('❌ API密钥无效或已过期，请重新设置');
+                this.showApiKeyPrompt(config.currentProvider);
+                this.resetSendButton();
+                return;
+            }
         }
 
         // 创建AbortController用于取消请求
@@ -279,6 +324,11 @@ class ChatApp {
             // 获取API端点和请求头
             const apiUrl = `${provider.baseURL}/chat/completions`;
             const headers = this.configManager.getHeaders(config.currentProvider);
+            
+            // 调试信息
+            console.log('API URL:', apiUrl);
+            console.log('请求头:', headers);
+            console.log('API密钥:', provider.apiKey ? `${provider.apiKey.substring(0, 10)}...` : '未设置');
 
             // 发送API请求
             const response = await fetch(apiUrl, {
@@ -381,6 +431,8 @@ class ChatApp {
         const decoder = new TextDecoder();
         let buffer = '';
         let fullResponse = '';
+        let reasoningContent = '';
+        let isDeepSeekR1 = false;
 
         // 创建AI消息容器
         const messageDiv = this.addMessage('assistant', '', false, true, 0); // 初始时长为0
@@ -406,12 +458,36 @@ class ChatApp {
 
                         try {
                             const parsed = JSON.parse(data);
-                            const delta = parsed.choices?.[0]?.delta?.content;
+                            const delta = parsed.choices?.[0]?.delta;
                             
+                            // 添加调试信息
                             if (delta) {
-                                fullResponse += delta;
-                                // 实时更新消息内容
-                                this.messageRenderer.renderInstant(messageContent, fullResponse);
+                                console.log('Delta object:', delta);
+                                if (delta.reasoning) {
+                                    console.log('Found reasoning:', delta.reasoning.substring(0, 100) + '...');
+                                }
+                            }
+                            
+                            // 检查是否有思考过程内容 (DeepSeek-R1)
+                            if (delta?.reasoning) {
+                                isDeepSeekR1 = true;
+                                reasoningContent += delta.reasoning;
+                                
+                                // 创建或更新思考过程显示
+                                this.updateThinkingProcess(messageDiv, reasoningContent);
+                            }
+                            
+                            // 处理常规内容
+                            if (delta?.content) {
+                                fullResponse += delta.content;
+                                
+                                // 如果是DeepSeek-R1，需要在思考过程后显示回答
+                                if (isDeepSeekR1) {
+                                    this.updateFinalAnswer(messageDiv, fullResponse);
+                                } else {
+                                    // 实时更新消息内容
+                                    this.messageRenderer.renderInstant(messageContent, fullResponse);
+                                }
                                 
                                 // 滚动到底部
                                 const chatContainer = document.querySelector('.chat-container');
@@ -433,17 +509,71 @@ class ChatApp {
                 timeInfo.textContent = `${responseTime}秒`;
             }
 
-            // 保存完整的AI回复
+            // 保存完整的AI回复（包含思考过程）
+            const completeContent = isDeepSeekR1 && reasoningContent ? 
+                `<thinking>\n${reasoningContent}\n</thinking>\n\n${fullResponse}` : 
+                fullResponse;
+                
             this.messages.push({ 
                 type: 'assistant', 
-                content: fullResponse, 
+                content: completeContent, 
                 responseTime: responseTime,
-                timestamp: new Date() 
+                timestamp: new Date(),
+                hasThinking: isDeepSeekR1 && reasoningContent.length > 0
             });
 
         } catch (error) {
             console.error('流式响应处理错误:', error);
             this.addSystemMessage('❌ 响应处理失败');
+        }
+    }
+
+    // 更新思考过程显示（简洁版）
+    updateThinkingProcess(messageDiv, reasoningContent) {
+        let thinkingSection = messageDiv.querySelector('.thinking-process');
+        
+        if (!thinkingSection) {
+            // 创建简洁的思考过程区域
+            thinkingSection = document.createElement('div');
+            thinkingSection.className = 'thinking-process';
+            
+            // 插入到 message-content 之前
+            const messageContent = messageDiv.querySelector('.message-content');
+            messageDiv.insertBefore(thinkingSection, messageContent);
+        }
+        
+        // 直接更新思考内容
+        this.messageRenderer.renderInstant(thinkingSection, reasoningContent);
+    }
+
+    // 更新最终答案
+    updateFinalAnswer(messageDiv, content) {
+        const messageContent = messageDiv.querySelector('.message-content');
+        if (messageContent) {
+            this.messageRenderer.renderInstant(messageContent, content);
+        }
+    }
+
+    // 渲染包含思考过程的消息（用于历史消息加载）
+    renderMessageWithThinking(messageDiv, content) {
+        // 解析思考过程和答案内容
+        const thinkingMatch = content.match(/<thinking>([\s\S]*?)<\/thinking>/);
+        const thinkingContent = thinkingMatch ? thinkingMatch[1].trim() : '';
+        const answerContent = content.replace(/<thinking>[\s\S]*?<\/thinking>\s*/, '').trim();
+
+        const messageContent = messageDiv.querySelector('.message-content');
+
+        if (thinkingContent) {
+            // 创建思考过程显示
+            this.updateThinkingProcess(messageDiv, thinkingContent);
+        }
+
+        if (answerContent) {
+            // 直接显示答案内容
+            this.messageRenderer.renderInstant(messageContent, answerContent);
+        } else if (!thinkingContent) {
+            // 如果既没有思考过程也没有答案内容，使用原始渲染
+            this.messageRenderer.renderInstant(messageContent, content);
         }
     }
 
@@ -515,7 +645,13 @@ class ChatApp {
             );
         } else {
             // AI消息立即渲染
-            this.messageRenderer.renderInstant(messageContent, content);
+            // 检查是否包含思考过程
+            if (type === 'assistant' && content.includes('<thinking>')) {
+                this.renderMessageWithThinking(messageDiv, content);
+            } else {
+                this.messageRenderer.renderInstant(messageContent, content);
+            }
+            
             if (type === 'assistant') {
                 this.bindMessageActions(messageDiv);
             }
@@ -918,7 +1054,7 @@ c & d
             const currentProvider = this.configManager.getCurrentProvider();
             const providerName = currentProvider ? currentProvider.name : 'OpenAI';
             
-            const welcomeMessage = `# 欢迎使用AI助手！
+            let welcomeMessage = `# 欢迎使用AI助手！
 
 **当前配置：** ${providerName} - ${this.currentModel}
 

@@ -97,29 +97,49 @@ class MessageRenderer {
         });
     }
 
+    // 处理思考过程标签
+    processThinkTags(text) {
+        // 将<think>...</think>标签转换为可折叠的思考过程
+        return text.replace(/<think>([\s\S]*?)<\/think>/g, (match, content) => {
+            const escapedContent = this.escapeHtml(content.trim());
+            return `
+                <div class="think-container">
+                    <details class="think-details">
+                        <summary class="think-summary">思考过程</summary>
+                        <div class="think-content">${escapedContent}</div>
+                    </details>
+                </div>
+            `;
+        });
+    }
+
     // 渲染完整消息
     renderMessage(text, isStreaming = false) {
-        // 1. HTML转义
-        let processedText = this.escapeHtml(text);
+        // 1. 处理思考过程标签
+        let processedText = this.processThinkTags(text);
         
-        // 2. 渲染数学公式
+        // 2. HTML转义
+        processedText = this.escapeHtml(processedText);
+        
+        // 3. 渲染数学公式
         processedText = this.renderMath(processedText);
         
-        // 3. 渲染Markdown
+        // 4. 渲染Markdown
         if (typeof marked !== 'undefined') {
             processedText = marked.parse(processedText);
         }
         
-        // 4. 使用DOMPurify清理HTML
+        // 5. 使用DOMPurify清理HTML
         if (typeof DOMPurify !== 'undefined') {
             processedText = DOMPurify.sanitize(processedText, {
                 ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 'code', 'pre', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 
-                              'ul', 'ol', 'li', 'blockquote', 'a', 'span', 'div', 'table', 'thead', 'tbody', 'tr', 'td', 'th'],
+                              'ul', 'ol', 'li', 'blockquote', 'a', 'span', 'div', 'table', 'thead', 'tbody', 'tr', 'td', 'th',
+                              'details', 'summary'],
                 ALLOWED_ATTR: ['href', 'class', 'id', 'style']
             });
         }
         
-        // 5. 添加流式传输光标
+        // 6. 添加流式传输光标
         if (isStreaming) {
             processedText += '<span class="streaming-cursor"></span>';
         }

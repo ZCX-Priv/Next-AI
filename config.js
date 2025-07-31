@@ -218,6 +218,9 @@ class ConfigManager {
             if (savedConfig) {
                 this.config = { ...this.config, ...JSON.parse(savedConfig) };
             }
+            
+            // 加载API密钥
+            this.loadApiKeys();
         } catch (error) {
             console.warn('加载配置失败:', error);
         }
@@ -229,6 +232,41 @@ class ConfigManager {
             localStorage.setItem('ai_chat_config', JSON.stringify(this.config));
         } catch (error) {
             console.warn('保存配置失败:', error);
+        }
+    }
+
+    // 加载API密钥
+    loadApiKeys() {
+        try {
+            const savedApiKeys = localStorage.getItem('ai_chat_api_keys');
+            if (savedApiKeys) {
+                const apiKeys = JSON.parse(savedApiKeys);
+                Object.keys(apiKeys).forEach(provider => {
+                    if (API_CONFIG[provider] && apiKeys[provider]) {
+                        // 只有当保存的密钥不为空时才覆盖
+                        if (apiKeys[provider].trim() !== '') {
+                            API_CONFIG[provider].apiKey = apiKeys[provider];
+                        }
+                    }
+                });
+            }
+        } catch (error) {
+            console.warn('加载API密钥失败:', error);
+        }
+    }
+
+    // 保存API密钥
+    saveApiKeys() {
+        try {
+            const apiKeys = {};
+            Object.keys(API_CONFIG).forEach(provider => {
+                if (API_CONFIG[provider].apiKey) {
+                    apiKeys[provider] = API_CONFIG[provider].apiKey;
+                }
+            });
+            localStorage.setItem('ai_chat_api_keys', JSON.stringify(apiKeys));
+        } catch (error) {
+            console.warn('保存API密钥失败:', error);
         }
     }
 
@@ -310,7 +348,8 @@ class ConfigManager {
     setApiKey(provider, apiKey) {
         if (API_CONFIG[provider]) {
             API_CONFIG[provider].apiKey = apiKey;
-            // 注意：出于安全考虑，API密钥不保存到localStorage
+            // 保存API密钥到localStorage
+            this.saveApiKeys();
             return true;
         }
         return false;
@@ -378,7 +417,10 @@ class ConfigManager {
 
         // 检查是否需要API密钥
         if (['openai', 'anthropic', 'deepseek', 'xai', 'openrouter', 'googleai'].includes(provider)) {
-            if (!providerConfig.apiKey) {
+            const apiKey = providerConfig.apiKey;
+            console.log(`验证 ${provider} 的API密钥:`, apiKey ? '已设置' : '未设置');
+            
+            if (!apiKey || apiKey.trim() === '') {
                 return { valid: false, error: '请设置API密钥' };
             }
         }
