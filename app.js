@@ -1166,9 +1166,18 @@ class ChatApp {
     }
 
     addSystemMessage(content) {
-        const messagesContainer = document.getElementById('messages');
-        const messageDiv = document.createElement('div');
-        messageDiv.className = 'message system-notification';
+        // 创建通知容器（如果不存在）
+        let notificationContainer = document.getElementById('notification-container');
+        if (!notificationContainer) {
+            notificationContainer = document.createElement('div');
+            notificationContainer.id = 'notification-container';
+            notificationContainer.className = 'notification-container';
+            document.body.appendChild(notificationContainer);
+        }
+        
+        // 创建通知元素
+        const notification = document.createElement('div');
+        notification.className = 'toast-notification';
         
         // 根据消息内容确定类型和图标
         let notificationType = 'info';
@@ -1183,43 +1192,40 @@ class ChatApp {
         } else if (content.includes('⚠️') || content.includes('警告') || content.includes('注意')) {
             notificationType = 'warning';
             icon = '⚠️';
-        } else if (content.includes('🎨') || content.includes('🎭') || content.includes('🗑️') || content.includes('⏹️')) {
-            notificationType = 'info';
-            // 保持原有的emoji图标
-            icon = content.match(/^[🎨🎭🗑️⏹️✅❌⚠️]/)?.[0] || 'ℹ️';
         }
         
-        // 移除内容开头的emoji，因为我们会在通知框中显示
+        // 移除内容开头的emoji，因为我们会在通知中显示
         const cleanContent = content.replace(/^[🎨🎭🗑️⏹️✅❌⚠️]\s*/, '');
         
-        messageDiv.innerHTML = `
-            <div class="notification-toast ${notificationType}">
-                <div class="notification-icon">${icon}</div>
-                <div class="notification-content">${cleanContent}</div>
-                <div class="notification-close" onclick="this.parentElement.parentElement.remove()">×</div>
+        notification.innerHTML = `
+            <div class="toast-content ${notificationType}">
+                <div class="toast-icon">${icon}</div>
+                <div class="toast-message">${cleanContent}</div>
+                <button class="toast-close" onclick="this.parentElement.parentElement.remove()">×</button>
             </div>
         `;
-
-        messagesContainer.appendChild(messageDiv);
         
-        // 自动滚动到底部
-        const chatContainer = document.querySelector('.chat-container');
-        chatContainer.scrollTop = chatContainer.scrollHeight;
+        // 添加到容器
+        notificationContainer.appendChild(notification);
         
-        // 3秒后自动消失（除了错误消息）
-        if (notificationType !== 'error') {
-            setTimeout(() => {
-                if (messageDiv.parentNode) {
-                    messageDiv.style.opacity = '0';
-                    messageDiv.style.transform = 'translateY(-10px)';
-                    setTimeout(() => {
-                        if (messageDiv.parentNode) {
-                            messageDiv.remove();
-                        }
-                    }, 300);
-                }
-            }, 3000);
-        }
+        // 显示动画
+        setTimeout(() => {
+            notification.classList.add('show');
+        }, 10);
+        
+        // 自动消失（错误消息显示更长时间）
+        const autoHideDelay = notificationType === 'error' ? 5000 : 3000;
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.classList.remove('show');
+                notification.classList.add('hide');
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.remove();
+                    }
+                }, 300);
+            }
+        }, autoHideDelay);
     }
 
     // 自定义确认对话框
@@ -1687,15 +1693,7 @@ c & d
         }
     }
 
-    selectChat(chatItem) {
-        document.querySelectorAll('.chat-item').forEach(item => {
-            item.classList.remove('active');
-        });
-        chatItem.classList.add('active');
-        
-        // 这里可以加载对应的聊天记录
-        this.newChat();
-    }
+
 
     async renameChat(chatId) {
         const chat = this.chatHistoryManager.getChatList().find(c => c.id === chatId);
@@ -1723,16 +1721,23 @@ c & d
             if (confirmed) {
                 this.chatHistoryManager.deleteChat(chatId);
                 
-                // 如果删除的是当前聊天，切换到第一个聊天
+                // 获取删除后的聊天列表
+                const chats = this.chatHistoryManager.getChatList();
+                
+                // 如果删除的是当前聊天
                 if (this.chatHistoryManager.currentChatId === chatId) {
-                    const chats = this.chatHistoryManager.getChatList();
                     if (chats.length > 0) {
                         this.selectChat(chats[0].id);
                     } else {
                         this.newChat();
                     }
                 } else {
-                    this.renderChatList();
+                    // 如果删除的不是当前聊天，但删除后没有聊天了，创建新聊天
+                    if (chats.length === 0) {
+                        this.newChat();
+                    } else {
+                        this.renderChatList();
+                    }
                 }
                 
                 this.addSystemMessage(`✅ 聊天 "${chat.title}" 已删除`);
@@ -2561,6 +2566,20 @@ c & d
             this.clearEditRoleForm();
         };
 
+        // 从添加角色页面返回到角色选择器
+        const backToRoleModalFromAdd = () => {
+            addRoleModal.style.display = 'none';
+            this.clearAddRoleForm();
+            this.showRoleModal();
+        };
+
+        // 从编辑角色页面返回到角色选择器
+        const backToRoleModalFromEdit = () => {
+            editRoleModal.style.display = 'none';
+            this.clearEditRoleForm();
+            this.showRoleModal();
+        };
+
         // 点击背景关闭
         modal.addEventListener('click', (e) => {
             if (e.target === modal) {
@@ -2584,9 +2603,9 @@ c & d
         closeBtn.addEventListener('click', closeModal);
         cancelBtn.addEventListener('click', closeModal);
         addRoleCloseBtn.addEventListener('click', closeAddRoleModal);
-        addRoleCancelBtn.addEventListener('click', closeAddRoleModal);
+        addRoleCancelBtn.addEventListener('click', backToRoleModalFromAdd);
         editRoleCloseBtn.addEventListener('click', closeEditRoleModal);
-        editRoleCancelBtn.addEventListener('click', closeEditRoleModal);
+        editRoleCancelBtn.addEventListener('click', backToRoleModalFromEdit);
 
         // 确认按钮
         confirmBtn.addEventListener('click', () => {
