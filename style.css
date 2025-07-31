@@ -725,6 +725,12 @@ body {
     border-top: 1px solid var(--border-color);
 }
 
+/* 桌面端：确认和取消按钮的容器 */
+.role-action-buttons {
+    display: flex;
+    gap: 12px;
+}
+
 .role-btn {
     padding: 8px 16px;
     border: none;
@@ -1529,23 +1535,15 @@ body {
     }
     
     /* 创建确认和取消按钮的容器 */
-    .role-modal-footer {
+    .role-action-buttons {
         display: flex;
-        flex-direction: column;
+        gap: 8px;
+        order: 2;
     }
     
     .role-btn-confirm,
     .role-btn-cancel {
-        order: 2;
-    }
-    
-    /* 使用CSS Grid来布局确认和取消按钮 */
-    .role-modal-footer .role-btn-confirm {
-        grid-area: confirm;
-    }
-    
-    .role-modal-footer .role-btn-cancel {
-        grid-area: cancel;
+        flex: 1;
     }
     
     /* 移动端添加/编辑角色表单优化 */

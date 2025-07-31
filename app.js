@@ -1754,13 +1754,7 @@ c & d
 
     loadWelcomeMessage() {
         setTimeout(() => {
-            const currentProvider = this.configManager.getCurrentProvider();
-            const providerName = currentProvider ? currentProvider.name : 'OpenAI';
-            const currentModelAlias = this.configManager.getCurrentModelAlias() || this.currentModel;
-            
             let welcomeMessage = `# 欢迎使用AI助手！
-
-**当前配置：** ${providerName} - ${currentModelAlias}
 
 ## 我可以帮助您：
 - 📝 回答各种问题
