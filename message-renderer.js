@@ -192,17 +192,29 @@ class MessageRenderer {
         return streamInterval;
     }
 
-    // 立即渲染消息（非流式）
+    // 立即渲染消息（非流式）- 优化版本
     renderInstant(element, text) {
+        // 避免重复渲染相同内容
+        if (element.dataset.lastContent === text) {
+            return;
+        }
+        
         element.classList.add('rendering');
         
         const renderedContent = this.renderMessage(text, false);
-        element.innerHTML = renderedContent;
         
-        // 添加代码块复制按钮
-        this.addCopyButtons(element);
-        
-        element.classList.remove('rendering');
-        element.classList.add('rendered');
+        // 使用requestAnimationFrame优化DOM更新
+        requestAnimationFrame(() => {
+            element.innerHTML = renderedContent;
+            
+            // 添加代码块复制按钮
+            this.addCopyButtons(element);
+            
+            element.classList.remove('rendering');
+            element.classList.add('rendered');
+            
+            // 记录最后渲染的内容
+            element.dataset.lastContent = text;
+        });
     }
 }

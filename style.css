@@ -699,70 +699,139 @@ body {
     min-height: 100%;
     display: flex;
     flex-direction: column;
-    padding: 0 24px;
+    padding: 0 24px 40px 24px; /* 增加底部内边距40px */
 }
 
 .message {
     display: flex;
-    margin-bottom: 24px;
+    margin-bottom: 32px;
     align-items: flex-start;
-    gap: 8px;
+    gap: 12px;
     width: 100%;
+    animation: fadeInUp 0.4s ease-out;
 }
 
 .message.user {
     flex-direction: row-reverse;
-    justify-content: flex-end;
+    justify-content: flex-start; /* 改为flex-start，让用户消息靠右但宽度自适应 */
+    margin-left: auto; /* 添加左边距自动，让整个消息容器靠右 */
+    margin-right: 0;
+    width: fit-content; /* 宽度适应内容 */
+    max-width: 100%; /* 最大宽度不超过容器 */
 }
 
 .message.assistant {
-    flex-direction: column;
-    align-items: stretch;
+    flex-direction: row;
+    align-items: flex-start;
 }
 
 .message-avatar {
-    width: 32px;
-    height: 32px;
+    width: 40px;
+    height: 40px;
     border-radius: 50%;
-    background-color: var(--bg-tertiary);
+    background: linear-gradient(135deg, var(--bg-tertiary), var(--border-color));
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 14px;
-    font-weight: 500;
+    font-size: 16px;
+    font-weight: 600;
     color: var(--text-primary);
     flex-shrink: 0;
-    transition: background-color 0.3s ease, color 0.3s ease;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    border: 2px solid rgba(255, 255, 255, 0.1);
 }
 
 .message.user .message-avatar {
-    background-color: var(--accent-color);
+    background: linear-gradient(135deg, var(--accent-color), #4f46e5);
     color: white;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
 }
 
 .message.assistant .message-avatar {
-    background-color: #10b981;
+    background: linear-gradient(135deg, #10b981, #059669);
     color: white;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
 }
 
 .message-content {
-    flex: 1;
-    line-height: 1.6;
+    flex: 0 1 auto; /* 改为自适应宽度，不占满剩余空间 */
+    max-width: 100%; /* 设置最大宽度，避免过长消息占满整行 */
+    min-width: 70%; /* 设置最小宽度，避免过短消息太窄 */
+    line-height: 1.7;
     word-wrap: break-word;
     overflow-wrap: break-word;
-    background-color: var(--bg-secondary);
-    padding: 12px 16px;
-    border-radius: 12px;
-    font-size: 14px;
+    background: linear-gradient(145deg, var(--bg-secondary), rgba(255, 255, 255, 0.02));
+    padding: 18px 22px;
+    border-radius: 18px;
+    font-size: 15px;
     color: var(--text-primary);
-    transition: background-color 0.3s ease, color 0.3s ease;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    position: relative;
+    backdrop-filter: blur(10px);
 }
 
 .message.user .message-content {
-    background-color: var(--accent-color);
+    background: linear-gradient(135deg, var(--accent-color), #4f46e5);
     color: white;
-    margin-right: 8px;
+    margin-right: 12px;
     margin-left: 0;
+    box-shadow: 0 4px 16px rgba(59, 130, 246, 0.25);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.message.assistant .message-content {
+    position: relative;
+}
+
+.message.assistant .message-content::before {
+    content: '';
+    position: absolute;
+    left: -12px;
+    top: 20px;
+    width: 0;
+    height: 0;
+    border-top: 8px solid transparent;
+    border-bottom: 8px solid transparent;
+    border-right: 12px solid var(--bg-secondary);
+    filter: drop-shadow(-2px 0 4px rgba(0, 0, 0, 0.1));
+}
+
+.message.user .message-content::before {
+    content: '';
+    position: absolute;
+    right: -12px;
+    top: 20px;
+    width: 0;
+    height: 0;
+    border-top: 8px solid transparent;
+    border-bottom: 8px solid transparent;
+    border-left: 12px solid var(--accent-color);
+    filter: drop-shadow(2px 0 4px rgba(59, 130, 246, 0.2));
+}
+
+/* 悬停效果 */
+.message-content:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+}
+
+.message.user .message-content:hover {
+    box-shadow: 0 6px 24px rgba(59, 130, 246, 0.35);
+}
+
+/* 动画效果 */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 /* Markdown内容样式 */
@@ -1094,45 +1163,167 @@ body {
     background: var(--text-primary);
 }
 
-/* 简洁的思考过程样式 */
+/* 优化的思考过程样式 */
 .thinking-process {
-    margin: 8px 0;
-    padding: 8px 12px;
-    background-color: var(--bg-tertiary);
-    border-radius: 8px;
-    font-size: 12px;
-    line-height: 1.5;
+    margin: 8px 0 12px 0;
+    padding: 14px 18px;
+    background: linear-gradient(145deg, rgba(16, 185, 129, 0.05), rgba(16, 185, 129, 0.02));
+    border-radius: 12px;
+    font-size: 13px;
+    line-height: 1.6;
     color: var(--text-secondary);
-    font-family: 'Courier New', 'Monaco', 'Menlo', monospace;
+    font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
     white-space: pre-wrap;
     word-break: break-word;
+    border: 1px solid rgba(16, 185, 129, 0.1);
+    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.08);
+    position: relative;
+    backdrop-filter: blur(5px);
+    width: 100%; /* 确保思考过程占满消息内容的宽度 */
+    box-sizing: border-box; /* 包含padding和border在内的宽度计算 */
+    overflow: hidden;
+    transition: all 0.3s ease;
 }
 
+/* 思考过程头部 */
 .thinking-header {
-    display: none;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    cursor: pointer;
+    user-select: none;
+    background: rgba(16, 185, 129, 0.03);
+    border-bottom: 1px solid rgba(16, 185, 129, 0.1);
+    transition: all 0.2s ease;
 }
 
-.thinking-content {
-    padding: 0;
+.thinking-header:hover {
+    background: rgba(16, 185, 129, 0.08);
+}
+
+.thinking-title {
+    font-weight: 500;
+    color: rgba(16, 185, 129, 0.9);
     font-size: 12px;
-    line-height: 1.5;
-    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 6px;
 }
 
-/* 移除答案区域样式 */
-.answer-section,
-.answer-header,
-.answer-content {
-    display: none;
+.thinking-title::before {
+    content: '🤔';
+    font-size: 14px;
+}
+
+/* 折叠按钮 */
+.thinking-toggle {
+    background: none;
+    border: none;
+    color: rgba(16, 185, 129, 0.7);
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+}
+
+.thinking-toggle:hover {
+    background: rgba(16, 185, 129, 0.1);
+    color: rgba(16, 185, 129, 1);
+}
+
+.thinking-toggle::before {
+    content: '▼';
+    transition: transform 0.3s ease;
+}
+
+.thinking-process.collapsed .thinking-toggle::before {
+    transform: rotate(-90deg);
+}
+
+/* 思考过程内容 */
+.thinking-content {
+    padding: 14px 18px;
+    white-space: pre-wrap;
+    word-break: break-word;
+    max-height: 300px;
+    overflow-y: auto;
+    transition: all 0.3s ease;
+}
+
+.thinking-process.collapsed .thinking-content {
+    max-height: 0;
+    padding: 0 18px;
+    opacity: 0;
+}
+
+/* 思考过程状态指示器 */
+.thinking-status {
+    position: absolute;
+    top: 12px;
+    right: 50px;
+    font-size: 10px;
+    color: rgba(16, 185, 129, 0.6);
+    font-weight: 500;
+}
+
+.thinking-status.thinking {
+    animation: pulse 1.5s infinite;
+}
+
+.thinking-status.completed {
+    color: rgba(16, 185, 129, 0.8);
+}
+
+.thinking-process::before {
+    position: absolute;
+    top: -8px;
+    left: 16px;
+    background: var(--bg-primary);
+    padding: 0 6px;
+    font-size: 12px;
+    color: var(--text-secondary);
 }
 
 /* 夜间模式下的思考过程样式 */
 [data-theme="dark"] .thinking-process {
-    background-color: var(--bg-tertiary);
+    background: linear-gradient(145deg, rgba(16, 185, 129, 0.08), rgba(16, 185, 129, 0.03));
+    border-color: rgba(16, 185, 129, 0.15);
     color: var(--text-secondary);
 }
 
-[data-theme="dark"] .thinking-content {
-    background-color: transparent;
-    color: var(--text-secondary);
+[data-theme="dark"] .thinking-header {
+    background: rgba(16, 185, 129, 0.05);
+    border-bottom-color: rgba(16, 185, 129, 0.15);
+}
+
+[data-theme="dark"] .thinking-header:hover {
+    background: rgba(16, 185, 129, 0.12);
+}
+
+[data-theme="dark"] .thinking-title {
+    color: rgba(16, 185, 129, 1);
+}
+
+[data-theme="dark"] .thinking-toggle {
+    color: rgba(16, 185, 129, 0.8);
+}
+
+[data-theme="dark"] .thinking-toggle:hover {
+    background: rgba(16, 185, 129, 0.15);
+    color: rgba(16, 185, 129, 1);
+}
+
+[data-theme="dark"] .thinking-status {
+    color: rgba(16, 185, 129, 0.7);
+}
+
+[data-theme="dark"] .thinking-status.completed {
+    color: rgba(16, 185, 129, 0.9);
 }

@@ -10,6 +10,11 @@ class ChatApp {
         this.isDarkMode = this.getStoredTheme() === 'dark';
         this.selectedRoleId = null; // 角色选择模态框中选中的角色ID
         
+        // 性能优化相关属性
+        this.lastThinkingContent = {}; // 缓存思考过程内容，避免重复渲染
+        this.scrollThrottleTimer = null; // 滚动节流定时器
+        this.renderQueue = new Map(); // 渲染队列，批量处理DOM更新
+        
         this.init();
     }
 
@@ -222,6 +227,9 @@ class ChatApp {
         messageInput.value = '';
         this.adjustTextareaHeight(messageInput);
 
+        // 确保用户消息发送后滚动到底部
+        this.optimizedScrollToBottom();
+
         // 更新发送按钮状态
         const sendBtn = document.getElementById('sendBtn');
         sendBtn.innerHTML = '<i class="fas fa-stop"></i>';
@@ -425,7 +433,7 @@ class ChatApp {
         return recentMessages;
     }
 
-    // 处理流式响应
+    // 处理流式响应 - 优化版本
     async handleStreamResponse(response, startTime) {
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
@@ -433,6 +441,10 @@ class ChatApp {
         let fullResponse = '';
         let reasoningContent = '';
         let isDeepSeekR1 = false;
+        
+        // 优化：减少DOM更新频率
+        let lastUpdateTime = 0;
+        const UPDATE_INTERVAL = 100; // 100ms更新一次，减少频繁更新
 
         // 创建AI消息容器
         const messageDiv = this.addMessage('assistant', '', false, true, 0); // 初始时长为0
@@ -460,43 +472,57 @@ class ChatApp {
                             const parsed = JSON.parse(data);
                             const delta = parsed.choices?.[0]?.delta;
                             
-                            // 添加调试信息
-                            if (delta) {
-                                console.log('Delta object:', delta);
-                                if (delta.reasoning) {
-                                    console.log('Found reasoning:', delta.reasoning.substring(0, 100) + '...');
-                                }
-                            }
-                            
                             // 检查是否有思考过程内容 (DeepSeek-R1)
                             if (delta?.reasoning) {
                                 isDeepSeekR1 = true;
                                 reasoningContent += delta.reasoning;
-                                
-                                // 创建或更新思考过程显示
-                                this.updateThinkingProcess(messageDiv, reasoningContent);
                             }
                             
                             // 处理常规内容
                             if (delta?.content) {
                                 fullResponse += delta.content;
+                            }
+                            
+                            // 优化：限制更新频率
+                            const now = Date.now();
+                            if (now - lastUpdateTime > UPDATE_INTERVAL) {
+                                lastUpdateTime = now;
                                 
-                                // 如果是DeepSeek-R1，需要在思考过程后显示回答
-                                if (isDeepSeekR1) {
-                                    this.updateFinalAnswer(messageDiv, fullResponse);
-                                } else {
-                                    // 实时更新消息内容
-                                    this.messageRenderer.renderInstant(messageContent, fullResponse);
+                                // 批量更新DOM
+                                if (isDeepSeekR1 && reasoningContent) {
+                                    this.updateThinkingProcess(messageDiv, reasoningContent);
                                 }
                                 
-                                // 滚动到底部
-                                const chatContainer = document.querySelector('.chat-container');
-                                chatContainer.scrollTop = chatContainer.scrollHeight;
+                                if (fullResponse) {
+                                    if (isDeepSeekR1) {
+                                        this.updateFinalAnswer(messageDiv, fullResponse);
+                                    } else {
+                                        this.messageRenderer.renderInstant(messageContent, fullResponse);
+                                    }
+                                }
+                                
+                                // 优化滚动：使用节流机制
+                                 this.optimizedScrollToBottom();
                             }
                         } catch (e) {
                             // 忽略JSON解析错误
                         }
                     }
+                }
+            }
+            
+            // 最终更新：确保所有内容都被渲染
+            if (isDeepSeekR1 && reasoningContent) {
+                this.updateThinkingProcess(messageDiv, reasoningContent);
+                // 思考过程完成，标记为已完成并自动折叠
+                this.completeThinkingProcess(messageDiv);
+            }
+            
+            if (fullResponse) {
+                if (isDeepSeekR1) {
+                    this.updateFinalAnswer(messageDiv, fullResponse);
+                } else {
+                    this.messageRenderer.renderInstant(messageContent, fullResponse);
                 }
             }
 
@@ -522,35 +548,145 @@ class ChatApp {
                 hasThinking: isDeepSeekR1 && reasoningContent.length > 0
             });
 
+            // 自动保存到聊天历史
+            this.chatHistoryManager.saveMessages(this.messages);
+
+            // 最终滚动到底部
+            this.optimizedScrollToBottom();
+
         } catch (error) {
             console.error('流式响应处理错误:', error);
             this.addSystemMessage('❌ 响应处理失败');
         }
     }
 
-    // 更新思考过程显示（简洁版）
+    // 更新思考过程显示（简洁版）- 优化版本
     updateThinkingProcess(messageDiv, reasoningContent) {
+        // 防抖：避免频繁更新相同内容
+        const thinkingKey = `thinking_${messageDiv.dataset.timestamp}`;
+        if (this.lastThinkingContent && this.lastThinkingContent[thinkingKey] === reasoningContent) {
+            return;
+        }
+        
+        // 记录最后更新的内容
+        if (!this.lastThinkingContent) {
+            this.lastThinkingContent = {};
+        }
+        this.lastThinkingContent[thinkingKey] = reasoningContent;
+        
         let thinkingSection = messageDiv.querySelector('.thinking-process');
         
         if (!thinkingSection) {
-            // 创建简洁的思考过程区域
+            // 创建新的思考过程区域
             thinkingSection = document.createElement('div');
-            thinkingSection.className = 'thinking-process';
+            thinkingSection.className = 'thinking-process'; // 初始状态为展开，不添加collapsed类
             
-            // 插入到 message-content 之前
+            // 创建思考过程头部
+            const thinkingHeader = document.createElement('div');
+            thinkingHeader.className = 'thinking-header';
+            
+            const thinkingTitle = document.createElement('div');
+            thinkingTitle.className = 'thinking-title';
+            thinkingTitle.textContent = '思考过程';
+            
+            const thinkingStatus = document.createElement('div');
+            thinkingStatus.className = 'thinking-status thinking';
+            thinkingStatus.textContent = '思考中...';
+            
+            const thinkingToggle = document.createElement('button');
+            thinkingToggle.className = 'thinking-toggle';
+            thinkingToggle.setAttribute('aria-label', '展开/折叠思考过程');
+            
+            thinkingHeader.appendChild(thinkingTitle);
+            thinkingHeader.appendChild(thinkingStatus);
+            thinkingHeader.appendChild(thinkingToggle);
+            
+            // 创建思考过程内容
+            const thinkingContent = document.createElement('div');
+            thinkingContent.className = 'thinking-content';
+            
+            thinkingSection.appendChild(thinkingHeader);
+            thinkingSection.appendChild(thinkingContent);
+            
+            // 添加点击事件
+            thinkingHeader.addEventListener('click', () => {
+                thinkingSection.classList.toggle('collapsed');
+            });
+            
+            // 获取消息内容容器
             const messageContent = messageDiv.querySelector('.message-content');
-            messageDiv.insertBefore(thinkingSection, messageContent);
+            
+            // 创建一个内容包装器，如果还没有的话
+            let contentWrapper = messageContent.querySelector('.content-wrapper');
+            if (!contentWrapper) {
+                contentWrapper = document.createElement('div');
+                contentWrapper.className = 'content-wrapper';
+                
+                // 将现有内容移动到包装器中
+                const existingContent = messageContent.innerHTML;
+                messageContent.innerHTML = '';
+                contentWrapper.innerHTML = existingContent;
+                
+                // 将思考过程和包装器添加到消息内容中
+                messageContent.appendChild(thinkingSection);
+                messageContent.appendChild(contentWrapper);
+            } else {
+                // 如果包装器已存在，只需在其前面插入思考过程
+                messageContent.insertBefore(thinkingSection, contentWrapper);
+            }
         }
         
-        // 直接更新思考内容
-        this.messageRenderer.renderInstant(thinkingSection, reasoningContent);
+        // 更新思考内容
+        const thinkingContent = thinkingSection.querySelector('.thinking-content');
+        if (thinkingContent) {
+            this.messageRenderer.renderInstant(thinkingContent, reasoningContent);
+        }
+        
+        // 更新状态指示器 - 确保在思考期间保持展开状态
+        const thinkingStatus = thinkingSection.querySelector('.thinking-status');
+        if (thinkingStatus) {
+            thinkingStatus.textContent = '思考中...';
+            thinkingStatus.className = 'thinking-status thinking';
+        }
+        
+        // 确保在思考期间保持展开状态
+        thinkingSection.classList.remove('collapsed');
+    }
+    
+    // 完成思考过程
+    completeThinkingProcess(messageDiv, immediate = false) {
+        const thinkingSection = messageDiv.querySelector('.thinking-process');
+        if (thinkingSection) {
+            const thinkingStatus = thinkingSection.querySelector('.thinking-status');
+            if (thinkingStatus) {
+                thinkingStatus.textContent = '已完成';
+                thinkingStatus.className = 'thinking-status completed';
+            }
+            
+            // 思考完成后立即折叠
+            if (immediate) {
+                // 立即折叠（用于历史消息）
+                thinkingSection.classList.add('collapsed');
+            } else {
+                // 新消息也立即折叠，不再延迟
+                thinkingSection.classList.add('collapsed');
+            }
+        }
     }
 
     // 更新最终答案
     updateFinalAnswer(messageDiv, content) {
         const messageContent = messageDiv.querySelector('.message-content');
         if (messageContent) {
-            this.messageRenderer.renderInstant(messageContent, content);
+            // 查找内容包装器
+            let contentWrapper = messageContent.querySelector('.content-wrapper');
+            if (contentWrapper) {
+                // 如果有包装器，渲染到包装器中
+                this.messageRenderer.renderInstant(contentWrapper, content);
+            } else {
+                // 如果没有包装器，直接渲染到消息内容中
+                this.messageRenderer.renderInstant(messageContent, content);
+            }
         }
     }
 
@@ -561,18 +697,25 @@ class ChatApp {
         const thinkingContent = thinkingMatch ? thinkingMatch[1].trim() : '';
         const answerContent = content.replace(/<thinking>[\s\S]*?<\/thinking>\s*/, '').trim();
 
-        const messageContent = messageDiv.querySelector('.message-content');
-
         if (thinkingContent) {
             // 创建思考过程显示
             this.updateThinkingProcess(messageDiv, thinkingContent);
+            // 对于历史消息，直接标记为已完成并立即折叠
+            this.completeThinkingProcess(messageDiv, true);
         }
 
         if (answerContent) {
             // 直接显示答案内容
-            this.messageRenderer.renderInstant(messageContent, answerContent);
+            const messageContent = messageDiv.querySelector('.message-content');
+            let contentWrapper = messageContent.querySelector('.content-wrapper');
+            if (contentWrapper) {
+                this.messageRenderer.renderInstant(contentWrapper, answerContent);
+            } else {
+                this.messageRenderer.renderInstant(messageContent, answerContent);
+            }
         } else if (!thinkingContent) {
             // 如果既没有思考过程也没有答案内容，使用原始渲染
+            const messageContent = messageDiv.querySelector('.message-content');
             this.messageRenderer.renderInstant(messageContent, content);
         }
     }
@@ -2028,6 +2171,44 @@ c & d
         });
         
         this.updateRoleConfirmButton();
+    }
+
+    // 优化的滚动方法 - 使用节流机制
+    optimizedScrollToBottom() {
+        if (this.scrollThrottleTimer) {
+            return; // 如果已有滚动请求在等待，直接返回
+        }
+        
+        this.scrollThrottleTimer = requestAnimationFrame(() => {
+            const chatContainer = document.querySelector('.chat-container');
+            if (chatContainer) {
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+            }
+            this.scrollThrottleTimer = null;
+        });
+    }
+
+    // 批量DOM更新方法
+    batchDOMUpdate(key, updateFunction) {
+        // 将更新函数添加到队列
+        this.renderQueue.set(key, updateFunction);
+        
+        // 使用requestAnimationFrame批量执行更新
+        if (this.renderQueue.size === 1) {
+            requestAnimationFrame(() => {
+                // 执行所有排队的更新
+                this.renderQueue.forEach((updateFn, updateKey) => {
+                    try {
+                        updateFn();
+                    } catch (error) {
+                        console.error(`批量更新失败 (${updateKey}):`, error);
+                    }
+                });
+                
+                // 清空队列
+                this.renderQueue.clear();
+            });
+        }
     }
 }
 
