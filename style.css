@@ -46,7 +46,6 @@
 .think-content {
     padding: 8px 12px;
     line-height: 1.5;
-    white-space: pre-wrap;
     word-break: break-word;
     font-family: 'Courier New', monospace;
     color: var(--text-secondary);
@@ -687,7 +686,6 @@ body {
 .messages-container {
     flex: 1;
     overflow-y: auto;
-    padding: 12px;
     background-color: var(--bg-primary);
     transition: background-color 0.3s ease;
 }
@@ -699,7 +697,7 @@ body {
     min-height: 100%;
     display: flex;
     flex-direction: column;
-    padding: 0 24px 40px 24px; /* 增加底部内边距40px */
+    padding: 0 24px;
 }
 
 .message {
@@ -758,7 +756,7 @@ body {
     flex: 0 1 auto; /* 改为自适应宽度，不占满剩余空间 */
     max-width: 100%; /* 设置最大宽度，避免过长消息占满整行 */
     min-width: 70%; /* 设置最小宽度，避免过短消息太窄 */
-    line-height: 1.7;
+    line-height: 1.5;
     word-wrap: break-word;
     overflow-wrap: break-word;
     background: linear-gradient(145deg, var(--bg-secondary), rgba(255, 255, 255, 0.02));
@@ -774,12 +772,12 @@ body {
 }
 
 .message.user .message-content {
-    background: linear-gradient(135deg, var(--accent-color), #4f46e5);
-    color: white;
+    background: linear-gradient(145deg, var(--bg-secondary), rgba(255, 255, 255, 0.02));
+    color: var(--text-primary);
     margin-right: 12px;
     margin-left: 0;
-    box-shadow: 0 4px 16px rgba(59, 130, 246, 0.25);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .message.assistant .message-content {
@@ -808,8 +806,8 @@ body {
     height: 0;
     border-top: 8px solid transparent;
     border-bottom: 8px solid transparent;
-    border-left: 12px solid var(--accent-color);
-    filter: drop-shadow(2px 0 4px rgba(59, 130, 246, 0.2));
+    border-left: 12px solid var(--bg-secondary);
+    filter: drop-shadow(2px 0 4px rgba(0, 0, 0, 0.1));
 }
 
 /* 悬停效果 */
@@ -819,7 +817,7 @@ body {
 }
 
 .message.user .message-content:hover {
-    box-shadow: 0 6px 24px rgba(59, 130, 246, 0.35);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
 }
 
 /* 动画效果 */
@@ -1049,6 +1047,7 @@ body {
 /* 输入区域 */
 .input-container {
     padding: 24px;
+    margin-top: 20px; /* 增加上边距 */
     border-top: 1px solid var(--border-color);
     background-color: var(--bg-primary);
     transition: background-color 0.3s ease, border-color 0.3s ease;
@@ -1169,11 +1168,10 @@ body {
     padding: 14px 18px;
     background: linear-gradient(145deg, rgba(16, 185, 129, 0.05), rgba(16, 185, 129, 0.02));
     border-radius: 12px;
-    font-size: 13px;
-    line-height: 1.6;
+    font-size: 14px;
+    line-height: 1.5;
     color: var(--text-secondary);
     font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
-    white-space: pre-wrap;
     word-break: break-word;
     border: 1px solid rgba(16, 185, 129, 0.1);
     box-shadow: 0 2px 8px rgba(16, 185, 129, 0.08);
@@ -1250,7 +1248,6 @@ body {
 /* 思考过程内容 */
 .thinking-content {
     padding: 14px 18px;
-    white-space: pre-wrap;
     word-break: break-word;
     max-height: 300px;
     overflow-y: auto;

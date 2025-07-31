@@ -93,7 +93,7 @@ const API_CONFIG = {
         name: 'OpenRouter',
         enabled: true, 
         baseURL: 'https://openrouter.ai/api/v1',
-        apiKey: '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', // 请在此处填入您的API密钥
+        apiKey: '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', // 请在此处填入您的API密钥
         models: [
             'deepseek/deepseek-chat-v3-0324:free',
             'deepseek/deepseek-r1-0528:free',
