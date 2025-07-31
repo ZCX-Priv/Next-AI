@@ -4,7 +4,7 @@ const API_CONFIG = {
     openai: {
         name: 'OpenAI',
         enabled: false, 
-        baseURL: 'https://api.openai.com/v1',
+        baseURL: 'https://api.openai.com/v1/chat/completions',
         apiKey: '', // 请在此处填入您的API密钥
         models: [
             'gpt-4-turbo-preview',
@@ -28,7 +28,7 @@ const API_CONFIG = {
     googleai: {
         name: 'Google AI Studio',
         enabled: false, 
-        baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+        baseURL: 'https://generativelanguage.googleapis.com/v1beta3',
         apiKey: '', // 请在此处填入您的API密钥
         models: [
             'gemini-pro',
@@ -51,7 +51,7 @@ const API_CONFIG = {
     anthropic: {
         name: 'Anthropic',
         enabled: false, 
-        baseURL: 'https://api.anthropic.com/v1',
+        baseURL: 'https://api.anthropic.com/v1/messages',
         apiKey: '', // 请在此处填入您的API密钥
         models: [
             'claude-3-opus-20240229',
@@ -78,7 +78,7 @@ const API_CONFIG = {
     deepseek: {
         name: 'DeepSeek',
         enabled: false, 
-        baseURL: 'https://api.deepseek.com/v1',
+        baseURL: 'https://api.deepseek.com/v1/chat/completions',
         apiKey: '', // 请在此处填入您的API密钥
         models: [
             'deepseek-chat',
@@ -100,7 +100,7 @@ const API_CONFIG = {
     xai: {
         name: 'xAI Grok',
         enabled: false, 
-        baseURL: 'https://api.x.ai/v1',
+        baseURL: 'https://api.x.ai/v1/chat/completions',
         apiKey: '', // 请在此处填入您的API密钥
         models: [
             'grok-beta',
@@ -120,7 +120,7 @@ const API_CONFIG = {
     openrouter: {
         name: 'OpenRouter',
         enabled: true, 
-        baseURL: 'https://openrouter.ai/api/v1',
+        baseURL: 'https://openrouter.ai/api/v1/chat/completions',
         apiKey: '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', // 请在此处填入您的API密钥
         models: [
             'deepseek/deepseek-chat-v3-0324:free',
@@ -152,8 +152,8 @@ const API_CONFIG = {
     pollinations: {
         name: 'Pollinations',
         enabled: true, 
-        baseURL: 'https://text.pollinations.ai',
-        apiKey: '', // Pollinations通常不需要API密钥
+        baseURL: 'https://text.pollinations.ai/openai',
+        apiKey: '38DJtIV7dXrRdYNl', // Pollinations通常不需要API密钥
         models: [
             'openai',
             'openai-fast',
@@ -173,7 +173,10 @@ const API_CONFIG = {
             'phi': 'Phi-4'
         },
         headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer {API_KEY}',
+            "stream": true,
+            'X-Title': 'AI Chat'
         }
     },
 
@@ -181,21 +184,23 @@ const API_CONFIG = {
     ollama: {
         name: 'Ollama',
         enabled: false, 
-        baseURL: 'http://localhost:11434/api',
+        baseURL: 'http://localhost:11434/v1/chat/completions',
         apiKey: '', // Ollama不需要API密钥
         models: [
-            'llama2',
+            'llama3.2',
+            'llama3.1',
+            'qwen2.5',
+            'deepseek-coder-v2',
             'codellama',
-            'mistral',
-            'neural-chat',
-            'starcode'
+            'mistral'
         ],
         modelAliases: {
-            'llama2': 'Llama 2',
+            'llama3.2': 'Llama 3.2',
+            'llama3.1': 'Llama 3.1',
+            'qwen2.5': 'Qwen 2.5',
+            'deepseek-coder-v2': 'DeepSeek Coder V2',
             'codellama': 'Code Llama',
-            'mistral': 'Mistral',
-            'neural-chat': 'Neural Chat',
-            'starcode': 'StarCode'
+            'mistral': 'Mistral'
         },
         headers: {
             'Content-Type': 'application/json'

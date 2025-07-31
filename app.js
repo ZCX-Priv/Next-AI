@@ -393,7 +393,7 @@ class ChatApp {
             };
 
             // 获取API端点和请求头
-            const apiUrl = `${provider.baseURL}/chat/completions`;
+            const apiUrl = provider.baseURL;
             const headers = this.configManager.getHeaders(config.currentProvider);
             
             // 调试信息
@@ -753,7 +753,7 @@ class ChatApp {
         if (thinkingSection) {
             const thinkingStatus = thinkingSection.querySelector('.thinking-status');
             if (thinkingStatus) {
-                thinkingStatus.textContent = '已完成';
+                thinkingStatus.textContent = '已深度思考';
                 thinkingStatus.className = 'thinking-status completed';
             }
             
@@ -865,26 +865,13 @@ class ChatApp {
         
         const thinkingIndicator = document.createElement('div');
         thinkingIndicator.className = 'thinking-indicator';
-        thinkingIndicator.style.cssText = `
-            display: flex !important;
-            align-items: center !important;
-            gap: 12px !important;
-            padding: 16px 20px !important;
-            margin: 8px 0 !important;
-            background: #f3f4f6 !important;
-            border-radius: 12px !important;
-            border: 1px solid #e5e7eb !important;
-            animation: fadeInUp 0.3s ease-out !important;
-            visibility: visible !important;
-            opacity: 1 !important;
-        `;
         thinkingIndicator.innerHTML = `
-            <div class="thinking-dots" style="display: flex !important; gap: 4px !important; align-items: center !important;">
-                <span class="dot" style="width: 8px !important; height: 8px !important; background: #3b82f6 !important; border-radius: 50% !important; animation: thinkingPulse 1.4s infinite ease-in-out !important; animation-delay: -0.32s !important;"></span>
-                <span class="dot" style="width: 8px !important; height: 8px !important; background: #3b82f6 !important; border-radius: 50% !important; animation: thinkingPulse 1.4s infinite ease-in-out !important; animation-delay: -0.16s !important;"></span>
-                <span class="dot" style="width: 8px !important; height: 8px !important; background: #3b82f6 !important; border-radius: 50% !important; animation: thinkingPulse 1.4s infinite ease-in-out !important; animation-delay: 0s !important;"></span>
+            <div class="thinking-dots">
+                <span class="dot"></span>
+                <span class="dot"></span>
+                <span class="dot"></span>
             </div>
-            <span class="thinking-text" style="font-size: 14px !important; font-style: italic !important;">AI正在思考...</span>
+            <span class="thinking-text">AI正在思考...</span>
         `;
         messageContent.appendChild(thinkingIndicator);
         console.log('思考指示器已添加到DOM');
@@ -1810,10 +1797,34 @@ c & d
                 display: flex;
                 justify-content: space-between;
                 align-items: center;
+                position: relative;
             }
             .modal-header h3 {
                 margin: 0;
                 font-size: 18px;
+                color: var(--text-primary);
+                flex: 1;
+                text-align: center;
+            }
+            .back-btn {
+                background: none;
+                border: none;
+                font-size: 18px;
+                cursor: pointer;
+                color: var(--text-secondary);
+                padding: 8px;
+                width: 36px;
+                height: 36px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                border-radius: 50%;
+                transition: all 0.2s;
+                position: absolute;
+                left: 20px;
+            }
+            .back-btn:hover {
+                background-color: var(--hover-color);
                 color: var(--text-primary);
             }
             .close-btn {
@@ -1830,6 +1841,8 @@ c & d
                 justify-content: center;
                 border-radius: 50%;
                 transition: background-color 0.2s;
+                position: absolute;
+                right: 20px;
             }
             .close-btn:hover {
                 background-color: var(--hover-color);
@@ -2017,6 +2030,9 @@ c & d
         modal.innerHTML = `
             <div class="modal-content">
                 <div class="modal-header">
+                    <button class="back-btn" title="返回设置">
+                        <i class="fas fa-arrow-left"></i>
+                    </button>
                     <h3>API设置</h3>
                     <button class="close-btn">&times;</button>
                 </div>
@@ -2063,10 +2079,34 @@ c & d
                 display: flex;
                 justify-content: space-between;
                 align-items: center;
+                position: relative;
             }
             .modal-header h3 {
                 margin: 0;
                 font-size: 18px;
+                color: var(--text-primary);
+                flex: 1;
+                text-align: center;
+            }
+            .back-btn {
+                position: absolute;
+                left: 20px;
+                background: none;
+                border: none;
+                font-size: 18px;
+                cursor: pointer;
+                color: var(--text-secondary);
+                padding: 8px;
+                width: 36px;
+                height: 36px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                border-radius: 50%;
+                transition: all 0.2s;
+            }
+            .back-btn:hover {
+                background-color: var(--hover-color);
                 color: var(--text-primary);
             }
             .close-btn {
@@ -2207,9 +2247,18 @@ c & d
             document.head.removeChild(style);
         });
 
+        // 返回按钮事件 - 返回设置主菜单
+        modal.querySelector('.back-btn').addEventListener('click', () => {
+            document.body.removeChild(modal);
+            document.head.removeChild(style);
+            this.showSettingsModal(); // 返回设置主菜单
+        });
+
+        // 取消按钮事件 - 返回设置主菜单
         modal.querySelector('#cancelBtn').addEventListener('click', () => {
             document.body.removeChild(modal);
             document.head.removeChild(style);
+            this.showSettingsModal(); // 返回设置主菜单
         });
 
         modal.querySelector('#saveBtn').addEventListener('click', () => {
@@ -2246,6 +2295,9 @@ c & d
             document.head.removeChild(style);
 
             this.addSystemMessage('API设置已保存，当前模型已自动调整');
+            
+            // 返回设置主菜单
+            this.showSettingsModal();
         });
 
         // 切换开关事件
