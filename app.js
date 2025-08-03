@@ -606,6 +606,29 @@ class ChatApp {
                 this.addSystemMessage('生成已停止');
             } else {
                 console.error('API调用错误:', error);
+                
+                // 移除思考指示器
+                if (this.currentAiMessageDiv) {
+                    const messageContent = this.currentAiMessageDiv.querySelector('.message-content');
+                    this.hideThinkingIndicator(messageContent);
+                    
+                    // 添加AI回复消息：接口调用失败，请换个模型试试吧
+                    this.messageRenderer.renderInstant(messageContent, '接口调用失败，请换个模型试试吧');
+                    
+                    // 保存到消息历史
+                    this.messages.push({ 
+                        type: 'assistant', 
+                        content: '接口调用失败，请换个模型试试吧',
+                        responseTime: 0,
+                        timestamp: new Date(),
+                        hasThinking: false
+                    });
+                    
+                    // 自动保存到聊天历史
+                    this.chatHistoryManager.saveMessages(this.messages);
+                }
+                
+                // 添加系统消息提示
                 this.addSystemMessage(`API调用失败: ${error.message}`);
                 
                 // 如果是API密钥错误，提示用户在设置中重新配置
@@ -1702,6 +1725,15 @@ class ChatApp {
             const showActions = msg.type === 'assistant';
             this.addMessage(msg.type, msg.content, false, false, msg.responseTime, showActions);
         });
+        
+        // 移动端自动收起侧边栏
+        const isMobile = window.innerWidth <= 768;
+        if (isMobile) {
+            const sidebar = document.getElementById('sidebar');
+            if (sidebar && sidebar.classList.contains('open')) {
+                sidebar.classList.remove('open');
+            }
+        }
         
         this.renderChatList();
     }
