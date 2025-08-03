@@ -405,6 +405,14 @@ class ChatApp {
             const providerConfig = this.configManager.getCurrentProvider();
             const modelAlias = this.configManager.getModelAlias(provider, model);
             this.addSystemMessage(`已切换到 ${providerConfig.name} - ${modelAlias}`);
+            
+            // 如果当前聊天是"新建聊天"，更新标题为模型名称
+            const currentChat = this.chatHistoryManager.getCurrentChat();
+            if (currentChat && currentChat.title === '新建聊天') {
+                const newTitle = `${providerConfig.name} - ${modelAlias}`;
+                this.chatHistoryManager.renameChat(currentChat.id, newTitle);
+                this.renderChatList();
+            }
         }
     }
 

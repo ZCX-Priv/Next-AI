@@ -1648,6 +1648,115 @@ body {
     background-color: rgba(37, 99, 235, 0.2);
 }
 
+/* 平板端适配 */
+@media (min-width: 769px) and (max-width: 1024px) and (orientation: portrait) {
+    .sidebar {
+        width: 260px;
+    }
+    
+    .sidebar.collapsed {
+        width: 60px;
+    }
+    
+    .main-content {
+        width: calc(100% - 260px);
+    }
+    
+    .sidebar.collapsed + .main-content {
+        width: calc(100% - 60px);
+    }
+    
+    .messages {
+        padding: 0 12px;
+    }
+    
+    .message-content {
+        padding: 14px 18px;
+        font-size: 14px;
+    }
+}
+
+@media (min-width: 769px) and (max-width: 1024px) and (orientation: landscape) {
+    .sidebar {
+        width: 300px;
+    }
+    
+    .sidebar.collapsed {
+        width: 60px;
+    }
+    
+    .main-content {
+        width: calc(100% - 300px);
+    }
+    
+    .sidebar.collapsed + .main-content {
+        width: calc(100% - 60px);
+    }
+}
+
+@media (min-width: 769px) and (max-width: 1024px) {
+    .sidebar {
+        width: 280px;
+    }
+    
+    .sidebar.collapsed {
+        width: 60px;
+    }
+    
+    .main-content {
+        width: calc(100% - 280px);
+    }
+    
+    .sidebar.collapsed + .main-content {
+        width: calc(100% - 60px);
+    }
+    
+    .messages {
+        padding: 0 16px;
+    }
+    
+    .message {
+        margin-bottom: 24px;
+        gap: 10px;
+    }
+    
+    .message-avatar {
+        width: 36px;
+        height: 36px;
+        font-size: 14px;
+    }
+    
+    .message-content {
+        padding: 16px 20px;
+        font-size: 14px;
+        border-radius: 14px;
+    }
+    
+    .input-container {
+        padding: 16px 20px;
+    }
+    
+    .input-wrapper {
+        max-width: 100%;
+        margin: 0 10px;
+    }
+    
+    .role-modal-content {
+        width: 85%;
+        max-width: 600px;
+    }
+    
+    .settings-modal .modal-content {
+        width: 85%;
+        max-width: 600px;
+    }
+    
+    .custom-modal .modal-content {
+        width: 85%;
+        max-width: 600px;
+    }
+}
+
 /* 响应式设计 */
 @media (max-width: 768px) {
     .sidebar {

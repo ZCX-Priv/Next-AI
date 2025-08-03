@@ -157,20 +157,22 @@ const API_CONFIG = {
         models: [
             'openai',
             'openai-fast',
-            'openai-reasoning',
-            'deepseek-reasoning',
             'grok',
+            'glm',
+            'evil',
             'mistral',
-            'phi'
+            'qwen',
+            'deepseek-reasoning'
         ],
         modelAliases: {
             'openai': 'OpenAI',
             'openai-fast': 'OpenAI Fast',
-            'openai-reasoning': 'OpenAI Reasoner',
-            'deepseek-reasoning': 'DeepSeek Reasoner',
             'grok': 'Grok-3',
+            'glm': 'GLM-4',
+            'evil': 'Evil',
             'mistral': 'Mistral AI',
-            'phi': 'Phi-4'
+            'qwen': '通义千问 mini',
+            'deepseek-reasoning': 'DeepSeek R1'
         },
         headers: {
             'Content-Type': 'application/json',
