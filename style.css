@@ -613,6 +613,7 @@ body {
     margin-bottom: 20px;
     padding-bottom: 16px;
     border-bottom: 1px solid var(--border-color);
+    position: relative;
 }
 
 .role-modal-title {
@@ -620,17 +621,25 @@ body {
     font-weight: 600;
     color: var(--text-primary);
     margin: 0;
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
 }
 
 .role-close-btn {
     background: none;
     border: none;
-    font-size: 24px;
+    font-size: 20px;
     color: var(--text-secondary);
     cursor: pointer;
-    padding: 4px;
+    width: 32px;
+    height: 32px;
     border-radius: 4px;
     transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: auto;
 }
 
 .role-close-btn:hover {
