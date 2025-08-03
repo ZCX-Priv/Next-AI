@@ -1131,30 +1131,45 @@ class ChatApp {
         const messageContent = document.createElement('div');
         messageContent.className = 'message-content';
 
-        // 添加消息操作按钮（仅AI消息且showActions为true）
-        if (type === 'assistant' && showActions) {
+        // 添加消息操作按钮
+        if (showActions) {
             const actionButtons = document.createElement('div');
             actionButtons.className = 'message-actions';
-            actionButtons.innerHTML = `
-                <button class="action-btn copy-text" title="复制文本">
-                    <i class="fas fa-copy"></i>
-                </button>
-                <button class="action-btn regenerate" title="重新生成">
-                    <i class="fas fa-redo"></i>
-                </button>
-                <button class="action-btn delete-message" title="删除消息">
-                    <i class="fas fa-trash"></i>
-                </button>
-            `;
-            messageDiv.appendChild(actionButtons);
+            
+            if (type === 'assistant') {
+                // AI消息的操作按钮
+                actionButtons.innerHTML = `
+                    <button class="action-btn copy-text" title="复制文本">
+                        <i class="fas fa-copy"></i>
+                    </button>
+                    <button class="action-btn regenerate" title="重新生成">
+                        <i class="fas fa-redo"></i>
+                    </button>
+                    <button class="action-btn delete-message" title="删除消息">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                `;
 
-            // 添加回复时长显示
-            if (responseTime !== null) {
-                const timeInfo = document.createElement('div');
-                timeInfo.className = 'response-time';
-                timeInfo.textContent = `${responseTime}秒`;
-                messageDiv.appendChild(timeInfo);
+                // 添加回复时长显示
+                if (responseTime !== null) {
+                    const timeInfo = document.createElement('div');
+                    timeInfo.className = 'response-time';
+                    timeInfo.textContent = `${responseTime}秒`;
+                    messageDiv.appendChild(timeInfo);
+                }
+            } else if (type === 'user') {
+                // 用户消息的操作按钮
+                actionButtons.innerHTML = `
+                    <button class="action-btn copy-text" title="复制文本">
+                        <i class="fas fa-copy"></i>
+                    </button>
+                    <button class="action-btn delete-message" title="删除消息">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                `;
             }
+            
+            messageDiv.appendChild(actionButtons);
         }
 
         messageDiv.appendChild(avatar);
@@ -1165,6 +1180,9 @@ class ChatApp {
         if (type === 'user') {
             // 用户消息立即渲染
             this.messageRenderer.renderInstant(messageContent, content);
+            if (showActions) {
+                this.bindMessageActions(messageDiv);
+            }
         } else if (isStreaming) {
             // AI消息流式渲染
             this.currentStreamInterval = this.messageRenderer.streamMessage(
@@ -1187,7 +1205,7 @@ class ChatApp {
                 this.messageRenderer.renderInstant(messageContent, content);
             }
             
-            if (type === 'assistant' && showActions) {
+            if (showActions) {
                 this.bindMessageActions(messageDiv);
             }
         }

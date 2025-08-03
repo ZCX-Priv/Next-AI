@@ -1033,7 +1033,7 @@ body {
     flex-direction: row-reverse;
     justify-content: flex-start; /* 改为flex-start，让用户消息靠右但宽度自适应 */
     margin-left: auto; /* 添加左边距自动，让整个消息容器靠右 */
-    margin-right: 0;
+    margin-bottom: 48px; /* 增加底部边距，为操作按钮留出空间 */
     width: fit-content; /* 宽度适应内容 */
     max-width: 100%; /* 最大宽度不超过容器 */
 }
@@ -1041,6 +1041,9 @@ body {
 .message.assistant {
     flex-direction: row;
     align-items: flex-start;
+    margin-bottom: 48px; /* 增加底部边距，为操作按钮留出空间 */
+    width: fit-content;
+    max-width: 100%;
 }
 
 .message-avatar {
@@ -1330,6 +1333,20 @@ body {
     z-index: 10;
 }
 
+.message.user .message-actions {
+    top: auto;
+    bottom: -32px;
+    right: 8px;
+    left: auto;
+}
+
+.message.assistant .message-actions {
+    top: auto;
+    bottom: -32px;
+    right: 8px;
+    left: auto;
+}
+
 .action-btn {
     width: 28px;
     height: 28px;
@@ -1366,8 +1383,15 @@ body {
 }
 
 .message.user .response-time {
-    left: 0;
+    left: 8px;
     right: auto;
+    bottom: -20px;
+}
+
+.message.assistant .response-time {
+    bottom: -20px;
+    right: 8px;
+    left: auto;
 }
 
 /* 代码块按钮增强样式已在上方统一定义 */
