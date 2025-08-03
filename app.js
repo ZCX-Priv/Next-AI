@@ -17,6 +17,16 @@ class ChatApp {
         this.scrollThrottleTimer = null; // 滚动节流定时器
         this.renderQueue = new Map(); // 渲染队列，批量处理DOM更新
         
+        // @角色选择功能相关属性
+        this.roleMentionState = {
+            isVisible: false,
+            selectedIndex: -1,
+            mentionStart: -1,
+            mentionEnd: -1,
+            searchQuery: '',
+            filteredRoles: []
+        };
+        
         this.init();
     }
 
@@ -210,15 +220,47 @@ class ChatApp {
 
         if (messageInput) {
             messageInput.addEventListener('keydown', (e) => {
+                // 处理@角色选择下拉菜单的键盘导航
+                if (this.isRoleMentionDropdownVisible()) {
+                    if (e.key === 'ArrowDown') {
+                        e.preventDefault();
+                        this.navigateRoleMention('down');
+                        return;
+                    } else if (e.key === 'ArrowUp') {
+                        e.preventDefault();
+                        this.navigateRoleMention('up');
+                        return;
+                    } else if (e.key === 'Enter') {
+                        e.preventDefault();
+                        this.selectCurrentRoleMention();
+                        return;
+                    } else if (e.key === 'Escape') {
+                        e.preventDefault();
+                        this.hideRoleMentionDropdown();
+                        return;
+                    }
+                }
+                
                 if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
                     this.sendMessage();
                 }
             });
 
-            // 自动调整输入框高度
-            messageInput.addEventListener('input', () => {
+            // 自动调整输入框高度和处理@角色选择
+            messageInput.addEventListener('input', (e) => {
                 this.adjustTextareaHeight(messageInput);
+                this.handleRoleMentionInput(e);
+            });
+
+            // 处理光标位置变化
+            messageInput.addEventListener('selectionchange', () => {
+                this.handleSelectionChange();
+            });
+
+            // 点击输入框时检查是否需要隐藏下拉菜单
+            messageInput.addEventListener('click', () => {
+                this.handleInputClick();
             });
         }
 
@@ -291,6 +333,18 @@ class ChatApp {
 
         // 角色模态框事件
         this.bindRoleModalEvents();
+
+        // 点击外部隐藏@角色选择下拉菜单
+        document.addEventListener('click', (e) => {
+            const dropdown = document.getElementById('roleMentionDropdown');
+            const messageInput = document.getElementById('messageInput');
+            
+            if (dropdown && messageInput && 
+                !dropdown.contains(e.target) && 
+                !messageInput.contains(e.target)) {
+                this.hideRoleMentionDropdown();
+            }
+        });
 
         // 窗口大小变化监听器
         window.addEventListener('resize', () => {
@@ -406,7 +460,7 @@ class ChatApp {
 
         // 创建AI消息容器并显示思考指示器
         console.log('创建AI消息容器...');
-        const aiMessageDiv = this.addMessage('assistant', '__THINKING__');
+        const aiMessageDiv = this.addMessage('assistant', '__THINKING__', false, false);
         console.log('AI消息容器已创建:', aiMessageDiv);
         
         const messageContent = aiMessageDiv.querySelector('.message-content');
@@ -1011,21 +1065,8 @@ class ChatApp {
     hideThinkingIndicator(messageContent) {
         const thinkingIndicator = messageContent.querySelector('.thinking-indicator');
         if (thinkingIndicator) {
-            const showTime = parseInt(thinkingIndicator.dataset.showTime) || 0;
-            const elapsedTime = Date.now() - showTime;
-            const minDisplayTime = 500; // 最少显示500ms
-            
-            if (elapsedTime < minDisplayTime) {
-                // 如果显示时间不足500ms，延迟移除
-                const remainingTime = minDisplayTime - elapsedTime;
-                setTimeout(() => {
-                    if (thinkingIndicator.parentNode) {
-                        thinkingIndicator.remove();
-                    }
-                }, remainingTime);
-            } else {
-                thinkingIndicator.remove();
-            }
+            // 立即移除思考指示器，不再延迟
+            thinkingIndicator.remove();
         }
     }
 
@@ -1119,12 +1160,16 @@ class ChatApp {
             // 自动保存到聊天历史
             this.chatHistoryManager.saveMessages(this.messages);
             
-            // 更新聊天标题（如果是新建聊天且有第一条用户消息）
+            // 更新聊天标题（如果是新建聊天且这是第一条用户消息）
             const currentChat = this.chatHistoryManager.getCurrentChat();
             if (currentChat && currentChat.title === '新建聊天' && type === 'user') {
-                const newTitle = this.chatHistoryManager.generateTitle(this.messages);
-                this.chatHistoryManager.renameChat(currentChat.id, newTitle);
-                this.renderChatList();
+                // 只有当这是第一条用户消息时才生成标题
+                const userMessages = this.messages.filter(m => m.type === 'user');
+                if (userMessages.length === 1) {
+                    const newTitle = this.chatHistoryManager.generateTitle(this.messages);
+                    this.chatHistoryManager.renameChat(currentChat.id, newTitle);
+                    this.renderChatList();
+                }
             }
         }
         
@@ -1194,7 +1239,7 @@ class ChatApp {
         messageDiv.remove();
 
         // 创建新的AI消息容器并显示思考指示器
-        const aiMessageDiv = this.addMessage('assistant', '__THINKING__');
+        const aiMessageDiv = this.addMessage('assistant', '__THINKING__', false, false);
         const messageContent = aiMessageDiv.querySelector('.message-content');
         this.showThinkingIndicator(messageContent);
         
@@ -1657,11 +1702,14 @@ class ChatApp {
         if (this.chatHistoryManager.currentChatId) {
             this.chatHistoryManager.saveMessages(this.messages);
             
-            // 更新聊天标题（如果是新建聊天且有消息）
+            // 更新聊天标题（如果是新建聊天且有用户消息）
             const currentChat = this.chatHistoryManager.getCurrentChat();
-            if (currentChat && currentChat.title === '新建聊天' && this.messages.length > 0) {
-                const newTitle = this.chatHistoryManager.generateTitle(this.messages);
-                this.chatHistoryManager.renameChat(currentChat.id, newTitle);
+            if (currentChat && currentChat.title === '新建聊天') {
+                const userMessages = this.messages.filter(m => m.type === 'user');
+                if (userMessages.length > 0) {
+                    const newTitle = this.chatHistoryManager.generateTitle(this.messages);
+                    this.chatHistoryManager.renameChat(currentChat.id, newTitle);
+                }
             }
         }
     }
@@ -3040,6 +3088,245 @@ class ChatApp {
                 this.renderQueue.clear();
             });
         }
+    }
+
+    // ==================== @角色选择功能 ====================
+
+    // 处理输入框内容变化，检测@符号
+    handleRoleMentionInput(e) {
+        const messageInput = document.getElementById('messageInput');
+        const text = messageInput.value;
+        const cursorPos = messageInput.selectionStart;
+
+        console.log('handleRoleMentionInput called:', { text, cursorPos });
+
+        // 查找光标前最近的@符号
+        const beforeCursor = text.substring(0, cursorPos);
+        const lastAtIndex = beforeCursor.lastIndexOf('@');
+
+        console.log('lastAtIndex:', lastAtIndex);
+
+        if (lastAtIndex === -1) {
+            // 没有@符号，隐藏下拉菜单
+            this.hideRoleMentionDropdown();
+            return;
+        }
+
+        // 检查@符号后面的内容
+        const afterAt = text.substring(lastAtIndex + 1, cursorPos);
+        
+        // 如果@符号后面有空格或换行，隐藏下拉菜单
+        if (afterAt.includes(' ') || afterAt.includes('\n')) {
+            this.hideRoleMentionDropdown();
+            return;
+        }
+
+        // 检查@符号前面是否是空格、换行或开头
+        const beforeAt = lastAtIndex > 0 ? text.charAt(lastAtIndex - 1) : '';
+        if (beforeAt !== '' && beforeAt !== ' ' && beforeAt !== '\n') {
+            this.hideRoleMentionDropdown();
+            return;
+        }
+
+        // 更新状态
+        this.roleMentionState.mentionStart = lastAtIndex;
+        this.roleMentionState.mentionEnd = cursorPos;
+        this.roleMentionState.searchQuery = afterAt;
+
+        // 过滤角色并显示下拉菜单
+        this.filterAndShowRoles(afterAt);
+    }
+
+    // 过滤角色并显示下拉菜单
+    filterAndShowRoles(query) {
+        const allRoles = this.roleManager.getAllRoles();
+        console.log('filterAndShowRoles called with query:', query, 'allRoles:', allRoles);
+        
+        // 过滤角色
+        this.roleMentionState.filteredRoles = allRoles.filter(role => {
+            const lowerQuery = query.toLowerCase();
+            return role.name.toLowerCase().includes(lowerQuery) ||
+                   role.description.toLowerCase().includes(lowerQuery);
+        });
+
+        console.log('filtered roles:', this.roleMentionState.filteredRoles);
+
+        // 重置选中索引
+        this.roleMentionState.selectedIndex = -1;
+
+        // 渲染下拉菜单
+        this.renderRoleMentionDropdown();
+
+        // 显示下拉菜单
+        this.showRoleMentionDropdown();
+    }
+
+    // 渲染角色选择下拉菜单
+    renderRoleMentionDropdown() {
+        const dropdown = document.getElementById('roleMentionDropdown');
+        const list = document.getElementById('roleMentionList');
+        
+        if (!dropdown || !list) return;
+
+        list.innerHTML = '';
+
+        if (this.roleMentionState.filteredRoles.length === 0) {
+            const noResult = document.createElement('div');
+            noResult.className = 'role-mention-item';
+            noResult.innerHTML = `
+                <div class="role-mention-info">
+                    <div class="role-mention-name">未找到匹配的角色</div>
+                </div>
+            `;
+            list.appendChild(noResult);
+            return;
+        }
+
+        this.roleMentionState.filteredRoles.forEach((role, index) => {
+            const item = document.createElement('button');
+            item.className = 'role-mention-item';
+            item.dataset.roleId = role.id;
+            item.dataset.index = index;
+
+            if (index === this.roleMentionState.selectedIndex) {
+                item.classList.add('selected');
+            }
+
+            item.innerHTML = `
+                <div class="role-mention-avatar">${role.avatar}</div>
+                <div class="role-mention-info">
+                    <div class="role-mention-name">${role.name}</div>
+                    <div class="role-mention-description">${role.description}</div>
+                </div>
+            `;
+
+            // 点击选择角色
+            item.addEventListener('click', (e) => {
+                e.preventDefault();
+                this.selectRoleMention(role);
+            });
+
+            list.appendChild(item);
+        });
+    }
+
+    // 显示角色选择下拉菜单
+    showRoleMentionDropdown() {
+        const dropdown = document.getElementById('roleMentionDropdown');
+        if (!dropdown) return;
+
+        dropdown.classList.add('show');
+        this.roleMentionState.isVisible = true;
+    }
+
+    // 隐藏角色选择下拉菜单
+    hideRoleMentionDropdown() {
+        const dropdown = document.getElementById('roleMentionDropdown');
+        if (!dropdown) return;
+
+        dropdown.classList.remove('show');
+        this.roleMentionState.isVisible = false;
+        this.roleMentionState.selectedIndex = -1;
+    }
+
+    // 检查角色选择下拉菜单是否可见
+    isRoleMentionDropdownVisible() {
+        return this.roleMentionState.isVisible;
+    }
+
+    // 键盘导航角色选择
+    navigateRoleMention(direction) {
+        if (this.roleMentionState.filteredRoles.length === 0) return;
+
+        const maxIndex = this.roleMentionState.filteredRoles.length - 1;
+        
+        if (direction === 'down') {
+            this.roleMentionState.selectedIndex = 
+                this.roleMentionState.selectedIndex < maxIndex ? 
+                this.roleMentionState.selectedIndex + 1 : 0;
+        } else if (direction === 'up') {
+            this.roleMentionState.selectedIndex = 
+                this.roleMentionState.selectedIndex > 0 ? 
+                this.roleMentionState.selectedIndex - 1 : maxIndex;
+        }
+
+        // 更新UI
+        this.updateRoleMentionSelection();
+    }
+
+    // 更新角色选择的UI状态
+    updateRoleMentionSelection() {
+        const items = document.querySelectorAll('.role-mention-item');
+        items.forEach((item, index) => {
+            if (index === this.roleMentionState.selectedIndex) {
+                item.classList.add('selected');
+                // 滚动到可见区域
+                item.scrollIntoView({ block: 'nearest' });
+            } else {
+                item.classList.remove('selected');
+            }
+        });
+    }
+
+    // 选择当前高亮的角色
+    selectCurrentRoleMention() {
+        if (this.roleMentionState.selectedIndex >= 0 && 
+            this.roleMentionState.selectedIndex < this.roleMentionState.filteredRoles.length) {
+            const selectedRole = this.roleMentionState.filteredRoles[this.roleMentionState.selectedIndex];
+            this.selectRoleMention(selectedRole);
+        }
+    }
+
+    // 选择角色并插入到输入框
+    selectRoleMention(role) {
+        const messageInput = document.getElementById('messageInput');
+        const text = messageInput.value;
+        
+        // 构建新的文本
+        const beforeMention = text.substring(0, this.roleMentionState.mentionStart);
+        const afterMention = text.substring(this.roleMentionState.mentionEnd);
+        const roleTag = `@${role.name} `;
+        
+        const newText = beforeMention + roleTag + afterMention;
+        const newCursorPos = beforeMention.length + roleTag.length;
+
+        // 更新输入框内容
+        messageInput.value = newText;
+        messageInput.setSelectionRange(newCursorPos, newCursorPos);
+
+        // 调整输入框高度
+        this.adjustTextareaHeight(messageInput);
+
+        // 隐藏下拉菜单
+        this.hideRoleMentionDropdown();
+
+        // 聚焦输入框
+        messageInput.focus();
+
+        // 切换到选中的角色
+        this.roleManager.setCurrentRole(role.id);
+        this.addSystemMessage(`已切换到角色：${role.name}`);
+    }
+
+    // 处理光标位置变化
+    handleSelectionChange() {
+        // 如果下拉菜单可见，检查光标是否还在@提及范围内
+        if (this.roleMentionState.isVisible) {
+            const messageInput = document.getElementById('messageInput');
+            const cursorPos = messageInput.selectionStart;
+            
+            // 如果光标移出了@提及范围，隐藏下拉菜单
+            if (cursorPos < this.roleMentionState.mentionStart || 
+                cursorPos > this.roleMentionState.mentionEnd) {
+                this.hideRoleMentionDropdown();
+            }
+        }
+    }
+
+    // 处理输入框点击
+    handleInputClick() {
+        // 重新检查是否需要显示@角色选择
+        this.handleRoleMentionInput({ target: document.getElementById('messageInput') });
     }
 }
 

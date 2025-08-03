@@ -105,12 +105,18 @@
                 <div class="input-wrapper">
                     <textarea 
                         id="messageInput" 
-                        placeholder="说点什么。。。"
+                        placeholder="说点什么。。。（输入@可选择角色）"
                         rows="1"
                     ></textarea>
                     <button class="send-btn" id="sendBtn">
                         <i class="fas fa-paper-plane"></i>
                     </button>
+                </div>
+                <!-- @角色选择下拉菜单 -->
+                <div class="role-mention-dropdown" id="roleMentionDropdown">
+                    <div class="role-mention-list" id="roleMentionList">
+                        <!-- 角色选项将在这里动态生成 -->
+                    </div>
                 </div>
             </div>
         </div>
