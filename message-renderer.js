@@ -85,6 +85,26 @@ class MessageRenderer {
             pre.parentNode.insertBefore(wrapper, pre);
             wrapper.appendChild(pre);
 
+            // 检查是否是HTML代码
+            const language = codeBlock.className.match(/language-(\w+)/);
+            const isHTML = language && (language[1] === 'html' || language[1] === 'htm');
+            
+            // 创建按钮容器
+            const buttonContainer = document.createElement('div');
+            buttonContainer.className = 'code-buttons';
+            
+            // 如果是HTML代码，添加预览按钮
+            if (isHTML) {
+                const previewBtn = document.createElement('button');
+                previewBtn.className = 'preview-btn';
+                previewBtn.textContent = '预览';
+                previewBtn.onclick = () => {
+                    this.showHTMLPreview(codeBlock.textContent);
+                };
+                buttonContainer.appendChild(previewBtn);
+            }
+
+            // 添加复制按钮
             const copyBtn = document.createElement('button');
             copyBtn.className = 'copy-btn';
             copyBtn.textContent = '复制';
@@ -98,9 +118,78 @@ class MessageRenderer {
                     console.error('复制失败:', err);
                 });
             };
+            buttonContainer.appendChild(copyBtn);
 
-            wrapper.appendChild(copyBtn);
+            wrapper.appendChild(buttonContainer);
         });
+    }
+
+    // 显示HTML预览模态框
+    showHTMLPreview(htmlContent) {
+        // 解析HTML内容中的title
+        let pageTitle = 'HTML预览';
+        const titleMatch = htmlContent.match(/<title[^>]*>(.*?)<\/title>/i);
+        if (titleMatch && titleMatch[1].trim()) {
+            // 对title进行HTML转义，防止XSS
+            pageTitle = titleMatch[1].trim()
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        // 创建模态框
+        const modal = document.createElement('div');
+        modal.className = 'html-preview-modal';
+        modal.innerHTML = `
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>${pageTitle}</h3>
+                    <button class="close-btn">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <iframe class="html-preview-frame" sandbox="allow-scripts allow-same-origin"></iframe>
+                </div>
+            </div>
+        `;
+
+        // 添加到页面
+        document.body.appendChild(modal);
+
+        // 获取iframe并设置内容
+        const iframe = modal.querySelector('.html-preview-frame');
+        const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+        iframeDoc.open();
+        iframeDoc.write(htmlContent);
+        iframeDoc.close();
+
+        // 关闭按钮事件
+        const closeBtn = modal.querySelector('.close-btn');
+        closeBtn.onclick = () => {
+            document.body.removeChild(modal);
+        };
+
+        // 点击模态框外部关闭
+        modal.onclick = (e) => {
+            if (e.target === modal) {
+                document.body.removeChild(modal);
+            }
+        };
+
+        // ESC键关闭
+        const handleEsc = (e) => {
+            if (e.key === 'Escape') {
+                document.body.removeChild(modal);
+                document.removeEventListener('keydown', handleEsc);
+            }
+        };
+        document.addEventListener('keydown', handleEsc);
+
+        // 显示模态框
+        setTimeout(() => {
+            modal.style.opacity = '1';
+        }, 10);
     }
 
     // 手动高亮代码块
