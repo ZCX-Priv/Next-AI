@@ -44,11 +44,88 @@ class ChatApp {
             themeToggle.innerHTML = '<i class="fas fa-sun"></i>';
             themeToggle.classList.remove('dark-mode');
         }
+
+        // 监听系统主题变化
+        this.setupSystemThemeListener();
     }
 
-    // 获取存储的主题
+    // 设置系统主题变化监听器
+    setupSystemThemeListener() {
+        try {
+            if (window.matchMedia) {
+                const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+                
+                // 监听系统主题变化
+                const handleThemeChange = (e) => {
+                    const storedTheme = localStorage.getItem('theme');
+                    
+                    // 只有在没有手动设置主题或设置为自动时才响应系统主题变化
+                    if (!storedTheme || storedTheme === 'auto') {
+                        const newTheme = e.matches ? 'dark' : 'light';
+                        this.isDarkMode = newTheme === 'dark';
+                        this.updateThemeDisplay();
+                        this.addSystemMessage(`检测到系统主题变化，已自动切换到${this.isDarkMode ? '夜间' : '白昼'}模式`);
+                    }
+                };
+
+                // 添加监听器
+                if (mediaQuery.addListener) {
+                    mediaQuery.addListener(handleThemeChange);
+                } else if (mediaQuery.addEventListener) {
+                    mediaQuery.addEventListener('change', handleThemeChange);
+                }
+            }
+        } catch (error) {
+            console.warn('无法设置系统主题监听器:', error);
+        }
+    }
+
+    // 更新主题显示
+    updateThemeDisplay() {
+        const themeToggle = document.getElementById('themeToggle');
+        if (!themeToggle) return;
+
+        const theme = this.isDarkMode ? 'dark' : 'light';
+        document.documentElement.setAttribute('data-theme', theme);
+
+        if (this.isDarkMode) {
+            themeToggle.innerHTML = '<i class="fas fa-moon"></i>';
+            themeToggle.classList.add('dark-mode');
+        } else {
+            themeToggle.innerHTML = '<i class="fas fa-sun"></i>';
+            themeToggle.classList.remove('dark-mode');
+        }
+    }
+
+    // 获取存储的主题，支持自动检测系统主题
     getStoredTheme() {
-        return localStorage.getItem('theme') || 'light';
+        const storedTheme = localStorage.getItem('theme');
+        
+        // 如果没有存储的主题设置，尝试检测系统主题
+        if (!storedTheme) {
+            return this.detectSystemTheme();
+        }
+        
+        // 如果存储的是 'auto'，也检测系统主题
+        if (storedTheme === 'auto') {
+            return this.detectSystemTheme();
+        }
+        
+        return storedTheme;
+    }
+
+    // 检测系统主题
+    detectSystemTheme() {
+        try {
+            // 检查浏览器是否支持 prefers-color-scheme
+            if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                return 'dark';
+            }
+            return 'light';
+        } catch (error) {
+            console.warn('无法检测系统主题，使用默认白昼模式:', error);
+            return 'light';
+        }
     }
 
     // 保存主题设置
@@ -1177,7 +1254,7 @@ class ChatApp {
         let notificationType = 'info';
         let icon = 'ℹ️';
         
-        if (content.includes('✅') || content.includes('成功') || content.includes('已保存') || content.includes('已切换')) {
+        if (content.includes('✅') || content.includes('成功') || content.includes('已保存') || content.includes('已切换') || content.includes('切换到')) {
             notificationType = 'success';
             icon = '✅';
         } else if (content.includes('❌') || content.includes('失败') || content.includes('错误') || content.includes('无效')) {
@@ -2294,21 +2371,11 @@ class ChatApp {
         this.isDarkMode = !this.isDarkMode;
         const theme = this.isDarkMode ? 'dark' : 'light';
         
-        document.documentElement.setAttribute('data-theme', theme);
+        // 手动切换主题时，保存具体的主题设置，这样就不会再自动跟随系统主题
         this.saveTheme(theme);
+        this.updateThemeDisplay();
         
-        const themeToggle = document.getElementById('themeToggle');
-        if (themeToggle) {
-            if (this.isDarkMode) {
-                themeToggle.innerHTML = '<i class="fas fa-moon"></i>';
-                themeToggle.classList.add('dark-mode');
-            } else {
-                themeToggle.innerHTML = '<i class="fas fa-sun"></i>';
-                themeToggle.classList.remove('dark-mode');
-            }
-        }
-        
-        this.addSystemMessage(`已切换到${this.isDarkMode ? '夜间' : '白昼'}模式`);
+        this.addSystemMessage(`已手动切换到${this.isDarkMode ? '夜间' : '白昼'}模式`);
     }
 
     // 侧边栏折叠切换
