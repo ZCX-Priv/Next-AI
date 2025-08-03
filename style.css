@@ -545,6 +545,7 @@ body {
     display: flex;
     align-items: center;
     gap: 8px;
+    margin-left: auto; /* 自动推到右侧 */
 }
 
 .header-actions .action-btn {
@@ -908,7 +909,7 @@ body {
     background-color: var(--bg-primary);
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: flex-start; /* 改为左对齐，不居中 */
     gap: 12px;
     transition: background-color 0.3s ease, border-color 0.3s ease;
 }
@@ -916,8 +917,9 @@ body {
 .model-dropdown {
     position: relative;
     display: inline-block;
-    min-width: 200px;
-    max-width: 300px;
+    min-width: 180px; /* 减小最小宽度 */
+    max-width: 250px; /* 减小最大宽度 */
+    flex-shrink: 0; /* 防止收缩 */
 }
 
 .model-btn {
@@ -1694,6 +1696,127 @@ body {
         font-size: 14px;
         margin-right: 8px;
     }
+    
+    /* 移动端消息布局优化 */
+    .messages {
+        padding: 0 12px; /* 减少左右内边距 */
+    }
+    
+    .message {
+        margin-bottom: 20px; /* 减少消息间距 */
+        gap: 8px; /* 减少头像和内容间距 */
+    }
+    
+    .message.user {
+        margin-left: 0; /* 移除左边距自动 */
+        width: 100%; /* 占满容器宽度 */
+        max-width: 100%;
+    }
+    
+    .message-avatar {
+        width: 32px; /* 减小头像尺寸 */
+        height: 32px;
+        font-size: 14px;
+        flex-shrink: 0;
+    }
+    
+    .message-content {
+        flex: 1; /* 占满剩余空间 */
+        max-width: calc(100% - 40px); /* 减去头像宽度和间距 */
+        min-width: 0; /* 允许收缩 */
+        padding: 14px 16px; /* 减少内边距 */
+        font-size: 14px; /* 减小字体 */
+        border-radius: 12px; /* 减小圆角 */
+        word-break: break-word;
+        overflow-wrap: break-word;
+    }
+    
+    .message.user .message-content {
+        margin-right: 0; /* 移除右边距 */
+        margin-left: 0;
+    }
+    
+    /* 移动端消息气泡箭头调整 */
+    .message.assistant .message-content::before {
+        left: -8px; /* 调整箭头位置 */
+        border-right-width: 8px;
+        border-top-width: 6px;
+        border-bottom-width: 6px;
+    }
+    
+    .message.user .message-content::before {
+        right: -8px; /* 调整箭头位置 */
+        border-left-width: 8px;
+        border-top-width: 6px;
+        border-bottom-width: 6px;
+    }
+    
+    /* 移动端消息操作按钮优化 */
+    .message-actions {
+        gap: 4px; /* 减少按钮间距 */
+    }
+    
+    .message-actions .action-btn {
+        width: 32px; /* 减小按钮尺寸 */
+        height: 32px;
+        font-size: 12px;
+    }
+    
+    /* 移动端代码块优化 */
+    .message-content pre {
+        padding: 12px; /* 减少代码块内边距 */
+        font-size: 12px; /* 减小代码字体 */
+        border-radius: 6px;
+        overflow-x: auto;
+        margin: 12px 0;
+    }
+    
+    .message-content code {
+        font-size: 12px; /* 减小行内代码字体 */
+        padding: 1px 4px;
+    }
+    
+    /* 移动端思考过程优化 */
+    .thinking-process {
+        margin: 6px 0 8px 0;
+        padding: 10px 12px;
+        font-size: 12px;
+        border-radius: 8px;
+    }
+    
+    .thinking-header {
+        padding: 8px 12px;
+    }
+    
+    .thinking-title {
+        font-size: 11px;
+    }
+    
+    .thinking-toggle {
+        width: 16px;
+        height: 16px;
+        font-size: 10px;
+    }
+    
+    /* 移动端输入区域优化 */
+    .input-container {
+        padding: 8px 12px; /* 减少输入区域内边距 */
+    }
+    
+    .input-wrapper {
+        gap: 8px; /* 减少输入框和发送按钮间距 */
+    }
+    
+    #messageInput {
+        font-size: 16px; /* 防止iOS缩放 */
+        padding: 12px 16px;
+    }
+    
+    .send-btn {
+        width: 44px; /* 调整发送按钮尺寸 */
+        height: 44px;
+        font-size: 16px;
+    }
 }
 
 /* 滚动条样式 */
@@ -2221,19 +2344,42 @@ body {
 @media (max-width: 768px) {
     .notification-container {
         top: 10px;
-        right: 10px;
-        left: 10px;
-        align-items: stretch;
+        left: 50%;
+        right: auto;
+        transform: translateX(-50%);
+        align-items: center;
+        width: calc(100% - 20px);
+        max-width: 400px;
     }
     
     .toast-content {
-        min-width: auto;
-        max-width: none;
-        width: 100%;
+        min-width: 280px;
+        max-width: 380px;
+        width: auto;
+        padding: 12px 16px;
+        font-size: 13px;
+        border-radius: 10px;
+    }
+    
+    .toast-icon {
+        width: 24px;
+        height: 24px;
+        font-size: 16px;
+    }
+    
+    .toast-message {
+        font-size: 13px;
+        line-height: 1.4;
+    }
+    
+    .toast-close {
+        width: 24px;
+        height: 24px;
+        font-size: 16px;
     }
     
     .toast-notification {
-        transform: translateY(-100%) scale(0.8);
+        transform: translateY(-100%) scale(0.9);
     }
     
     .toast-notification.show {
@@ -2241,6 +2387,6 @@ body {
     }
     
     .toast-notification.hide {
-        transform: translateY(-100%) scale(0.8);
+        transform: translateY(-100%) scale(0.9);
     }
 }

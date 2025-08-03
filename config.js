@@ -144,7 +144,7 @@ const API_CONFIG = {
             'Content-Type': 'application/json',
             'Authorization': 'Bearer {API_KEY}',
             'HTTP-Referer': window.location.origin,
-            'X-Title': 'AI Chat'
+            'X-Title': 'NextAI'
         }
     },
 
@@ -176,7 +176,7 @@ const API_CONFIG = {
             'Content-Type': 'application/json',
             'Authorization': 'Bearer {API_KEY}',
             "stream": true,
-            'X-Title': 'AI Chat'
+            'X-Title': 'NextAI'
         }
     },
 

@@ -269,8 +269,7 @@ class ChatApp {
         // 检查API配置
         const validation = this.configManager.validateConfig(provider);
         if (!validation.valid) {
-            this.addSystemMessage(`${validation.error}`);
-            this.showApiKeyPrompt(provider);
+            this.addSystemMessage(`${validation.error}，请在设置中配置API密钥`);
         } else {
             const providerConfig = this.configManager.getCurrentProvider();
             const modelAlias = this.configManager.getModelAlias(provider, model);
@@ -400,8 +399,7 @@ class ChatApp {
         // 验证API配置
         const validation = this.configManager.validateConfig(config.currentProvider);
         if (!validation.valid) {
-            this.addSystemMessage(`${validation.error}`);
-            this.showApiKeyPrompt(config.currentProvider);
+            this.addSystemMessage(`${validation.error}，请在设置中配置API密钥`);
             this.resetSendButton();
             return;
         }
@@ -410,8 +408,7 @@ class ChatApp {
         if (config.currentProvider === 'openrouter') {
             const isValidKey = await this.validateApiKey(config.currentProvider);
             if (!isValidKey) {
-                this.addSystemMessage('API密钥无效或已过期，请重新设置');
-                this.showApiKeyPrompt(config.currentProvider);
+                this.addSystemMessage('API密钥无效或已过期，请在设置中重新配置');
                 this.resetSendButton();
                 return;
             }
@@ -472,9 +469,9 @@ class ChatApp {
                 console.error('API调用错误:', error);
                 this.addSystemMessage(`API调用失败: ${error.message}`);
                 
-                // 如果是API密钥错误，提示用户重新设置
+                // 如果是API密钥错误，提示用户在设置中重新配置
                 if (error.message.includes('401') || error.message.includes('403')) {
-                    this.showApiKeyPrompt(config.currentProvider);
+                    this.addSystemMessage('认证失败，请在设置中检查并重新配置API密钥');
                 }
             }
         } finally {
@@ -1160,10 +1157,7 @@ class ChatApp {
         messageDiv.remove();
     }
 
-    // 添加流式消息方法
-    addStreamingMessage(type, content) {
-        return this.addMessage(type, content, true);
-    }
+
 
     addSystemMessage(content) {
         // 创建通知容器（如果不存在）
@@ -1463,105 +1457,7 @@ class ChatApp {
         });
     }
 
-    simulateAIResponse(userMessage) {
-        const currentModelAlias = this.configManager.getCurrentModelAlias() || this.currentModel;
-        
-        const responses = {
-            '你好': '您好！我是AI助手，很高兴为您服务。有什么我可以帮助您的吗？',
-            '你是谁': `我是**${currentModelAlias}**，一个AI助手。我可以帮助您回答问题、提供信息和进行对话。`,
-            '你是哪个公司的哪个模型': `我是**${currentModelAlias}**模型。我可以帮助您处理各种任务，包括：\n\n- 回答问题\n- 文本生成\n- 代码编写\n- 数据分析`,
-            '你能做什么': `我可以帮助您：
 
-## 📝 文本处理
-- 回答各种问题
-- 协助写作和编辑
-- 翻译文本
-
-## 💻 编程支持
-- 代码编写和调试
-- 算法解释
-- 技术咨询
-
-## 📊 数据分析
-- 数据处理
-- 统计分析
-- 图表制作
-
-## 🎨 创意思考
-- 创意写作
-- 头脑风暴
-- 问题解决
-
-还有更多功能等您探索！`,
-            '代码示例': `这里是一个Python代码示例：
-
-\`\`\`python
-def fibonacci(n):
-    """计算斐波那契数列的第n项"""
-    if n <= 1:
-        return n
-    return fibonacci(n-1) + fibonacci(n-2)
-
-# 计算前10项
-for i in range(10):
-    print(f"F({i}) = {fibonacci(i)}")
-\`\`\`
-
-这个函数使用递归方法计算斐波那契数列。`,
-            '数学公式': `这里是一些数学公式示例：
-
-**行内公式：** 勾股定理 $a^2 + b^2 = c^2$
-
-**块级公式：**
-$$\\int_{-\\infty}^{\\infty} e^{-x^2} dx = \\sqrt{\\pi}$$
-
-**矩阵：**
-$$\\begin{pmatrix}
-a & b \\\\
-c & d
-\\end{pmatrix}$$
-
-数学公式使用LaTeX语法渲染。`,
-            'markdown': `# Markdown语法示例
-
-## 文本格式
-- **粗体文本**
-- *斜体文本*
-- \`行内代码\`
-
-## 列表
-1. 有序列表项1
-2. 有序列表项2
-   - 无序子项
-   - 另一个子项
-
-## 引用
-> 这是一个引用块
-> 可以包含多行内容
-
-## 表格
-| 列1 | 列2 | 列3 |
-|-----|-----|-----|
-| 数据1 | 数据2 | 数据3 |
-| 数据4 | 数据5 | 数据6 |
-
-## 链接
-[这是一个链接](https://example.com)`
-        };
-
-        let response = responses[userMessage] || `我理解您说的是"${userMessage}"。作为**${currentModelAlias}**，我会尽力为您提供帮助。
-
-请告诉我您需要什么具体的协助？我可以：
-- 回答问题
-- 编写代码
-- 解释概念
-- 提供建议
-
-有什么我可以帮您的吗？`;
-
-        // 使用流式传输显示AI回复
-        this.addStreamingMessage('assistant', response);
-    }
 
     adjustTextareaHeight(textarea) {
         textarea.style.height = 'auto';
