@@ -458,6 +458,23 @@ class ChatApp {
 
         console.log('发送消息:', message);
 
+        // 检查当前聊天是否有用户消息
+        const currentChat = this.chatHistoryManager.getCurrentChat();
+        const hasUserMessages = this.messages.some(msg => msg.type === 'user');
+
+        let targetChatId = this.chatHistoryManager.currentChatId;
+
+        // 如果没有用户消息，创建新聊天；否则直接在当前聊天中添加消息
+        if (!hasUserMessages) {
+            // 使用第一条消息内容作为标题创建新聊天
+            const newTitle = this.chatHistoryManager.generateTitle([{type: 'user', content: message}]);
+            const newChat = this.chatHistoryManager.createNewChat(newTitle);
+            targetChatId = newChat.id;
+            this.chatHistoryManager.currentChatId = targetChatId;
+            this.messages = []; // 清空当前消息列表（包括欢迎消息）
+            this.renderChatList();
+        }
+
         // 添加用户消息
         this.addMessage('user', message);
         messageInput.value = '';
