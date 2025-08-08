@@ -883,9 +883,12 @@ class ChatApp {
         let reasoningContent = '';
         let isDeepSeekR1 = false;
         
-        // 优化：减少DOM更新频率
+        // 优化：提高更新频率，使流式响应更流畅
         let lastUpdateTime = 0;
-        const UPDATE_INTERVAL = 100; // 100ms更新一次，减少频繁更新
+        const UPDATE_INTERVAL = 16; // 16ms更新一次（约60fps），提高流畅度
+        
+        // 批量更新缓冲区
+        let pendingUpdate = false;
 
         // 使用已创建的AI消息容器
         const messageDiv = this.currentAiMessageDiv;
@@ -940,26 +943,36 @@ class ChatApp {
                                 }
                             }
                             
-                            // 优化：限制更新频率
+                            // 优化：使用更流畅的更新机制
                             const now = Date.now();
-                            if (now - lastUpdateTime > UPDATE_INTERVAL) {
+                            if (!pendingUpdate && now - lastUpdateTime > UPDATE_INTERVAL) {
+                                pendingUpdate = true;
                                 lastUpdateTime = now;
                                 
-                                // 批量更新DOM
-                                if (isDeepSeekR1 && reasoningContent) {
-                                    this.updateThinkingProcess(messageDiv, reasoningContent);
-                                }
-                                
-                                if (fullResponse) {
-                                    if (isDeepSeekR1) {
-                                        this.updateFinalAnswer(messageDiv, fullResponse);
-                                    } else {
-                                        this.messageRenderer.renderInstant(messageContent, fullResponse);
+                                // 使用 requestAnimationFrame 确保流畅更新
+                                requestAnimationFrame(() => {
+                                    try {
+                                        // 批量更新DOM
+                                        if (isDeepSeekR1 && reasoningContent) {
+                                            this.updateThinkingProcess(messageDiv, reasoningContent);
+                                        }
+                                        
+                                        if (fullResponse) {
+                                            if (isDeepSeekR1) {
+                                                this.updateFinalAnswer(messageDiv, fullResponse);
+                                            } else {
+                                                this.messageRenderer.renderInstant(messageContent, fullResponse);
+                                            }
+                                        }
+                                        
+                                        // 更流畅的滚动
+                                        this.smoothScrollToBottom();
+                                    } catch (error) {
+                                        console.error('流式更新错误:', error);
+                                    } finally {
+                                        pendingUpdate = false;
                                     }
-                                }
-                                
-                                // 优化滚动：使用节流机制
-                                 this.optimizedScrollToBottom();
+                                });
                             }
                         } catch (e) {
                             // 忽略JSON解析错误
@@ -1012,7 +1025,7 @@ class ChatApp {
             this.chatHistoryManager.saveMessages(this.messages);
 
             // 最终滚动到底部
-            this.optimizedScrollToBottom();
+            this.smoothScrollToBottom();
 
         } catch (error) {
             // 确保移除思考指示器
@@ -3415,6 +3428,35 @@ class ChatApp {
             }
             this.scrollThrottleTimer = null;
         });
+    }
+
+    // 更流畅的滚动方法 - 专为流式响应优化
+    smoothScrollToBottom() {
+        // 如果用户正在手动滚动，不执行自动滚动
+        if (this.userScrolling) {
+            return;
+        }
+        
+        const chatContainer = document.querySelector('.chat-container');
+        if (!chatContainer) return;
+        
+        // 直接滚动到底部，不使用节流，确保流式响应时的流畅性
+        const scrollTop = chatContainer.scrollTop;
+        const scrollHeight = chatContainer.scrollHeight;
+        const clientHeight = chatContainer.clientHeight;
+        const distanceFromBottom = scrollHeight - clientHeight - scrollTop;
+        
+        // 如果距离底部很近，直接跳转（避免动画延迟）
+        if (distanceFromBottom < 50) {
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        } else if (distanceFromBottom < 200) {
+            // 中等距离使用平滑滚动
+            chatContainer.scrollTo({
+                top: chatContainer.scrollHeight,
+                behavior: 'smooth'
+            });
+        }
+        // 距离太远时不自动滚动，避免打断用户查看历史消息
     }
 
     // 智能滚动到底部（根据用户行为决定滚动方式）

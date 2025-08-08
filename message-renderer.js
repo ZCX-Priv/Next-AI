@@ -335,21 +335,25 @@ class MessageRenderer {
             return;
         }
         
-        // 避免重复渲染相同内容
-        if (element.dataset.lastContent === text) {
+        // 避免重复渲染相同内容（但允许增量更新）
+        const lastContent = element.dataset.lastContent || '';
+        if (lastContent === text) {
             return;
         }
+        
+        // 检查是否是增量更新（新内容包含旧内容）
+        const isIncremental = text.startsWith(lastContent) && text.length > lastContent.length;
         
         element.classList.add('rendering');
         
         const renderedContent = this.renderMessage(text, false);
         
-        // 使用requestAnimationFrame优化DOM更新
-        requestAnimationFrame(() => {
+        // 对于增量更新，直接更新DOM以提高性能
+        if (isIncremental) {
             element.innerHTML = renderedContent;
             
-            // 手动高亮代码块
-            this.highlightCodeBlocks(element);
+            // 只对新增的代码块进行高亮
+            this.highlightNewCodeBlocks(element);
             
             // 添加代码块复制按钮
             this.addCopyButtons(element);
@@ -359,6 +363,33 @@ class MessageRenderer {
             
             // 记录最后渲染的内容
             element.dataset.lastContent = text;
-        });
+        } else {
+            // 使用requestAnimationFrame优化DOM更新
+            requestAnimationFrame(() => {
+                element.innerHTML = renderedContent;
+                
+                // 手动高亮代码块
+                this.highlightCodeBlocks(element);
+                
+                // 添加代码块复制按钮
+                this.addCopyButtons(element);
+                
+                element.classList.remove('rendering');
+                element.classList.add('rendered');
+                
+                // 记录最后渲染的内容
+                element.dataset.lastContent = text;
+            });
+        }
+    }
+
+    // 只高亮新增的代码块
+    highlightNewCodeBlocks(element) {
+        if (typeof hljs !== 'undefined') {
+            const codeBlocks = element.querySelectorAll('pre code:not([data-highlighted])');
+            codeBlocks.forEach(block => {
+                hljs.highlightElement(block);
+            });
+        }
     }
 }
