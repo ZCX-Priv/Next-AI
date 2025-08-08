@@ -1,5 +1,7 @@
 // API配置文件
-const API_CONFIG = {
+
+// 文本API配置
+const TEXT_API_CONFIG = {
     // OpenAI配置
     openai: {
         name: 'OpenAI',
@@ -155,8 +157,85 @@ const API_CONFIG = {
     }
 };
 
+// 图片API配置
+const IMAGE_API_CONFIG = {
+    // OpenAI DALL-E配置
+    openai_dalle: {
+        name: 'OpenAI DALL-E',
+        enabled: false,
+        baseURL: 'https://api.openai.com/v1/images/generations',
+        apiKey: '', // 请在此处填入您的API密钥
+        models: {
+            'dall-e-3': 'DALL-E 3',
+            'dall-e-2': 'DALL-E 2'
+        },
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer {API_KEY}'
+        }
+    },
+
+    // Pollinations图片配置
+    pollinations_image: {
+        name: 'Pollinations Image',
+        enabled: true,
+        baseURL: 'https://image.pollinations.ai/prompt',
+        apiKey: '38DJtIV7dXrRdYNl', 
+        models: {
+            'flux': 'Flux',
+            'flux-realism': 'Flux Realism',
+            'flux-cablyai': 'Flux CablyAI',
+            'flux-anime': 'Flux Anime',
+            'flux-3d': 'Flux 3D',
+            'any-dark': 'Any Dark',
+            'turbo': 'Turbo'
+        },
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    },
+
+    // Stability AI配置
+    stability: {
+        name: 'Stability AI',
+        enabled: false,
+        baseURL: 'https://api.stability.ai/v1/generation',
+        apiKey: '', // 请在此处填入您的API密钥
+        models: {
+            'stable-diffusion-xl-1024-v1-0': 'Stable Diffusion XL',
+            'stable-diffusion-v1-6': 'Stable Diffusion v1.6',
+            'stable-diffusion-512-v2-1': 'Stable Diffusion v2.1'
+        },
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer {API_KEY}'
+        }
+    },
+
+    // Midjourney (通过第三方API)
+    midjourney: {
+        name: 'Midjourney',
+        enabled: false,
+        baseURL: 'https://api.midjourney.com/v1/imagine',
+        apiKey: '', // 请在此处填入您的API密钥
+        models: {
+            'midjourney-v6': 'Midjourney v6',
+            'midjourney-v5': 'Midjourney v5',
+            'niji-v6': 'Niji v6'
+        },
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer {API_KEY}'
+        }
+    }
+};
+
+// 为了向后兼容，保留原有的API_CONFIG
+const API_CONFIG = TEXT_API_CONFIG;
+
 // 默认配置
 const DEFAULT_CONFIG = {
+    // 文本API配置
     currentProvider: null, // 将自动检测第一个启用的提供商
     currentModel: null, // 将自动检测第一个模型
     temperature: 0.7,
@@ -164,7 +243,15 @@ const DEFAULT_CONFIG = {
     contextLength: 10, // 上下文长度（0-25）
     maxTokens: 2048,
     timeout: 30000, // 30秒超时
-    retryAttempts: 3
+    retryAttempts: 3,
+    
+    // 图片API配置
+    currentImageProvider: null, // 当前图片API提供商
+    currentImageModel: null, // 当前图片模型
+    imageWidth: 1024, // 图片宽度
+    imageHeight: 1024, // 图片高度
+    imageSteps: 20, // 生成步数
+    imageGuidanceScale: 7.5 // 引导比例
 };
 
 // 配置管理类
@@ -178,6 +265,24 @@ class ConfigManager {
     // 获取第一个启用的提供商和模型
     getFirstEnabledProviderAndModel() {
         const enabledProviders = this.getProviders();
+        if (enabledProviders.length > 0) {
+            const firstProvider = enabledProviders[0];
+            const modelKeys = Object.keys(firstProvider.models || {});
+            if (modelKeys.length > 0) {
+                const firstModel = modelKeys[0];
+                return {
+                    provider: firstProvider.key,
+                    model: firstModel
+                };
+            }
+        }
+        // 如果没有启用的提供商，返回null
+        return null;
+    }
+
+    // 获取第一个启用的图片提供商和模型
+    getFirstEnabledImageProviderAndModel() {
+        const enabledProviders = this.getImageProviders();
         if (enabledProviders.length > 0) {
             const firstProvider = enabledProviders[0];
             const modelKeys = Object.keys(firstProvider.models || {});
@@ -220,6 +325,33 @@ class ConfigManager {
                 this.saveConfig();
             }
         }
+
+        // 初始化图片API配置
+        const enabledImageProviders = this.getImageProviders();
+        
+        // 如果当前图片提供商为null或未启用，自动检测第一个启用的图片提供商
+        if (!this.config.currentImageProvider || !enabledImageProviders.find(p => p.key === this.config.currentImageProvider)) {
+            const firstEnabledImage = this.getFirstEnabledImageProviderAndModel();
+            if (firstEnabledImage) {
+                this.config.currentImageProvider = firstEnabledImage.provider;
+                this.config.currentImageModel = firstEnabledImage.model;
+                this.saveConfig();
+            } else {
+                // 没有启用的图片提供商，重置为null
+                this.config.currentImageProvider = null;
+                this.config.currentImageModel = null;
+            }
+        }
+        
+        // 如果当前图片模型为null或在当前图片提供商中不存在，使用该提供商的第一个模型
+        const currentImageProvider = this.getCurrentImageProvider();
+        if (currentImageProvider && (!this.config.currentImageModel || !currentImageProvider.models.hasOwnProperty(this.config.currentImageModel))) {
+            const modelKeys = Object.keys(currentImageProvider.models || {});
+            if (modelKeys.length > 0) {
+                this.config.currentImageModel = modelKeys[0];
+                this.saveConfig();
+            }
+        }
     }
 
     // 从localStorage加载配置
@@ -249,6 +381,7 @@ class ConfigManager {
     // 加载API密钥
     loadApiKeys() {
         try {
+            // 加载文本API密钥
             const savedApiKeys = localStorage.getItem('ai_chat_api_keys');
             if (savedApiKeys) {
                 const apiKeys = JSON.parse(savedApiKeys);
@@ -261,6 +394,20 @@ class ConfigManager {
                     }
                 });
             }
+
+            // 加载图片API密钥
+            const savedImageApiKeys = localStorage.getItem('ai_chat_image_api_keys');
+            if (savedImageApiKeys) {
+                const imageApiKeys = JSON.parse(savedImageApiKeys);
+                Object.keys(imageApiKeys).forEach(provider => {
+                    if (IMAGE_API_CONFIG[provider] && imageApiKeys[provider]) {
+                        // 只有当保存的密钥不为空时才覆盖
+                        if (imageApiKeys[provider].trim() !== '') {
+                            IMAGE_API_CONFIG[provider].apiKey = imageApiKeys[provider];
+                        }
+                    }
+                });
+            }
         } catch (error) {
             console.warn('加载API密钥失败:', error);
         }
@@ -269,6 +416,7 @@ class ConfigManager {
     // 保存API密钥
     saveApiKeys() {
         try {
+            // 保存文本API密钥
             const apiKeys = {};
             Object.keys(API_CONFIG).forEach(provider => {
                 if (API_CONFIG[provider].apiKey) {
@@ -276,6 +424,15 @@ class ConfigManager {
                 }
             });
             localStorage.setItem('ai_chat_api_keys', JSON.stringify(apiKeys));
+
+            // 保存图片API密钥
+            const imageApiKeys = {};
+            Object.keys(IMAGE_API_CONFIG).forEach(provider => {
+                if (IMAGE_API_CONFIG[provider].apiKey) {
+                    imageApiKeys[provider] = IMAGE_API_CONFIG[provider].apiKey;
+                }
+            });
+            localStorage.setItem('ai_chat_image_api_keys', JSON.stringify(imageApiKeys));
         } catch (error) {
             console.warn('保存API密钥失败:', error);
         }
@@ -284,6 +441,11 @@ class ConfigManager {
     // 获取当前提供商配置
     getCurrentProvider() {
         return API_CONFIG[this.config.currentProvider];
+    }
+
+    // 获取当前图片提供商配置
+    getCurrentImageProvider() {
+        return IMAGE_API_CONFIG[this.config.currentImageProvider];
     }
 
     // 设置当前提供商
@@ -296,11 +458,32 @@ class ConfigManager {
         return false;
     }
 
+    // 设置当前图片提供商
+    setImageProvider(provider) {
+        if (IMAGE_API_CONFIG[provider]) {
+            this.config.currentImageProvider = provider;
+            this.saveConfig();
+            return true;
+        }
+        return false;
+    }
+
     // 设置当前模型
     setModel(model) {
         const provider = this.getCurrentProvider();
         if (provider && provider.models && provider.models.hasOwnProperty(model)) {
             this.config.currentModel = model;
+            this.saveConfig();
+            return true;
+        }
+        return false;
+    }
+
+    // 设置当前图片模型
+    setImageModel(model) {
+        const provider = this.getCurrentImageProvider();
+        if (provider && provider.models && provider.models.hasOwnProperty(model)) {
+            this.config.currentImageModel = model;
             this.saveConfig();
             return true;
         }
@@ -355,6 +538,64 @@ class ConfigManager {
         return this.config.contextLength;
     }
 
+    // 设置图片参数
+    setImageWidth(width) {
+        const w = parseInt(width);
+        if (w > 0 && w <= 2048) {
+            this.config.imageWidth = w;
+            this.saveConfig();
+            return true;
+        }
+        return false;
+    }
+
+    setImageHeight(height) {
+        const h = parseInt(height);
+        if (h > 0 && h <= 2048) {
+            this.config.imageHeight = h;
+            this.saveConfig();
+            return true;
+        }
+        return false;
+    }
+
+    setImageSteps(steps) {
+        const s = parseInt(steps);
+        if (s > 0 && s <= 100) {
+            this.config.imageSteps = s;
+            this.saveConfig();
+            return true;
+        }
+        return false;
+    }
+
+    setImageGuidanceScale(scale) {
+        const gs = parseFloat(scale);
+        if (gs >= 1 && gs <= 20) {
+            this.config.imageGuidanceScale = gs;
+            this.saveConfig();
+            return true;
+        }
+        return false;
+    }
+
+    // 获取图片参数
+    getImageWidth() {
+        return this.config.imageWidth;
+    }
+
+    getImageHeight() {
+        return this.config.imageHeight;
+    }
+
+    getImageSteps() {
+        return this.config.imageSteps;
+    }
+
+    getImageGuidanceScale() {
+        return this.config.imageGuidanceScale;
+    }
+
     // 设置API密钥
     setApiKey(provider, apiKey) {
         if (API_CONFIG[provider]) {
@@ -366,9 +607,25 @@ class ConfigManager {
         return false;
     }
 
+    // 设置图片API密钥
+    setImageApiKey(provider, apiKey) {
+        if (IMAGE_API_CONFIG[provider]) {
+            IMAGE_API_CONFIG[provider].apiKey = apiKey;
+            // 保存API密钥到localStorage
+            this.saveApiKeys();
+            return true;
+        }
+        return false;
+    }
+
     // 获取API密钥
     getApiKey(provider) {
         return API_CONFIG[provider]?.apiKey || '';
+    }
+
+    // 获取图片API密钥
+    getImageApiKey(provider) {
+        return IMAGE_API_CONFIG[provider]?.apiKey || '';
     }
 
     // 获取模型别名
@@ -415,6 +672,14 @@ class ConfigManager {
         return false;
     }
 
+    // 设置图片提供商启用状态
+    setImageProviderEnabled(provider, enabled) {
+        if (IMAGE_API_CONFIG[provider]) {
+            IMAGE_API_CONFIG[provider].enabled = enabled;
+            this.saveConfig();
+        }
+    }
+
     // 获取所有提供商（包括禁用的）
     getAllProviders() {
         return Object.keys(API_CONFIG).map(key => ({
@@ -422,6 +687,16 @@ class ConfigManager {
             name: API_CONFIG[key].name,
             enabled: API_CONFIG[key].enabled,
             models: Object.keys(API_CONFIG[key].models || {})
+        }));
+    }
+
+    // 获取所有图片提供商（包括禁用的）
+    getAllImageProviders() {
+        return Object.keys(IMAGE_API_CONFIG).map(key => ({
+            key,
+            name: IMAGE_API_CONFIG[key].name,
+            enabled: IMAGE_API_CONFIG[key].enabled,
+            models: Object.keys(IMAGE_API_CONFIG[key].models || {})
         }));
     }
 
@@ -433,6 +708,17 @@ class ConfigManager {
                 key,
                 name: API_CONFIG[key].name,
                 models: Object.keys(API_CONFIG[key].models || {})
+            }));
+    }
+
+    // 获取所有可用的图片提供商（只返回启用的）
+    getImageProviders() {
+        return Object.keys(IMAGE_API_CONFIG)
+            .filter(key => IMAGE_API_CONFIG[key].enabled) // 只返回启用的API
+            .map(key => ({
+                key,
+                name: IMAGE_API_CONFIG[key].name,
+                models: Object.keys(IMAGE_API_CONFIG[key].models || {})
             }));
     }
 
