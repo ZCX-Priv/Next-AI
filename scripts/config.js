@@ -182,13 +182,12 @@ const IMAGE_API_CONFIG = {
         baseURL: 'https://image.pollinations.ai/prompt',
         apiKey: '38DJtIV7dXrRdYNl', 
         models: {
-            'flux': 'Flux',
-            'flux-realism': 'Flux Realism',
-            'flux-cablyai': 'Flux CablyAI',
-            'flux-anime': 'Flux Anime',
-            'flux-3d': 'Flux 3D',
-            'any-dark': 'Any Dark',
-            'turbo': 'Turbo'
+            'turbo': '快速生成',
+            'flux': 'Flux 通用版',
+            'flux-3d': 'Flux 3D风格',
+            'flux-pro': 'Flux 专业版',
+            'flux-realism': 'Flux 写实风格',
+            'flux-anime': 'Flux 动漫风格',
         },
         headers: {
             'Content-Type': 'application/json'
