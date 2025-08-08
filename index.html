@@ -113,6 +113,36 @@
                         placeholder="说点什么。。。（输入@可选择角色）"
                         rows="1"
                     ></textarea>
+                    <!-- Tools按钮和下拉菜单 -->
+                    <div class="tools-container">
+                        <button class="tools-btn" id="toolsBtn" title="工具">
+                            <i class="fas fa-tools"></i>
+                        </button>
+                        <div class="tools-dropdown" id="toolsDropdown">
+                            <div class="tools-menu">
+                                <div class="tools-item" id="webSearchToggle">
+                                    <div class="tools-item-content">
+                                        <i class="fas fa-search"></i>
+                                        <span>联网搜索</span>
+                                    </div>
+                                    <div class="toggle-switch">
+                                        <input type="checkbox" id="webSearchSwitch" class="toggle-input">
+                                        <label for="webSearchSwitch" class="toggle-label"></label>
+                                    </div>
+                                </div>
+                                <div class="tools-item" id="imageGenerationToggle">
+                                    <div class="tools-item-content">
+                                        <i class="fas fa-image"></i>
+                                        <span>创建图片</span>
+                                    </div>
+                                    <div class="toggle-switch">
+                                        <input type="checkbox" id="imageGenerationSwitch" class="toggle-input">
+                                        <label for="imageGenerationSwitch" class="toggle-label"></label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                     <button class="send-btn" id="sendBtn">
                         <i class="fas fa-paper-plane"></i>
                     </button>

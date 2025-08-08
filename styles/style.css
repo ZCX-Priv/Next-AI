@@ -3043,3 +3043,210 @@ body {
 [data-theme="dark"] .send-btn.stop-mode:hover {
     background: linear-gradient(135deg, #dc2626, #b91c1c);
 }
+
+/* Tools按钮和下拉菜单样式 */
+.tools-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.tools-btn {
+    background: var(--bg-tertiary);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    flex-shrink: 0;
+    font-size: 16px;
+    margin-right: 8px;
+    position: relative;
+    overflow: hidden;
+}
+
+.tools-btn:hover {
+    background: var(--accent-color);
+    color: white;
+    border-color: var(--accent-color);
+    transform: translateY(-1px) scale(1.05);
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+}
+
+.tools-btn:active {
+    transform: translateY(0) scale(0.98);
+    transition: all 0.1s ease;
+}
+
+.tools-btn.active {
+    background: var(--accent-color);
+    color: white;
+    border-color: var(--accent-color);
+}
+
+.tools-dropdown {
+    position: absolute;
+    bottom: 100%;
+    left: 0;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+    min-width: 200px;
+    z-index: 1000;
+    margin-bottom: 8px;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(10px);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.tools-dropdown.show {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+.tools-menu {
+    padding: 8px 0;
+}
+
+.tools-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    border: none;
+    background: none;
+    width: 100%;
+    text-align: left;
+}
+
+.tools-item:hover {
+    background: var(--bg-secondary);
+}
+
+.tools-item-content {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex: 1;
+}
+
+.tools-item-content i {
+    font-size: 16px;
+    color: var(--text-secondary);
+    width: 20px;
+    text-align: center;
+}
+
+.tools-item-content span {
+    font-size: 14px;
+    color: var(--text-primary);
+    font-weight: 500;
+}
+
+/* 切换开关样式 */
+.toggle-switch {
+    position: relative;
+    display: inline-block;
+    width: 44px;
+    height: 24px;
+}
+
+.toggle-input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.toggle-label {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    border-radius: 24px;
+    transition: all 0.3s ease;
+}
+
+.toggle-label:before {
+    position: absolute;
+    content: "";
+    height: 18px;
+    width: 18px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    border-radius: 50%;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.toggle-input:checked + .toggle-label {
+    background-color: var(--accent-color);
+}
+
+.toggle-input:checked + .toggle-label:before {
+    transform: translateX(20px);
+}
+
+.toggle-input:focus + .toggle-label {
+    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+}
+
+/* 夜间模式下的tools样式 */
+[data-theme="dark"] .tools-btn {
+    background: rgba(75, 85, 99, 0.5);
+    color: #9ca3af;
+    border-color: rgba(107, 114, 128, 0.3);
+}
+
+[data-theme="dark"] .tools-btn:hover {
+    background: #3b82f6;
+    color: white;
+    border-color: #3b82f6;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+}
+
+[data-theme="dark"] .tools-btn.active {
+    background: #3b82f6;
+    color: white;
+    border-color: #3b82f6;
+}
+
+[data-theme="dark"] .tools-dropdown {
+    background: rgba(31, 41, 55, 0.95);
+    border-color: rgba(75, 85, 99, 0.3);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(10px);
+}
+
+[data-theme="dark"] .tools-item:hover {
+    background: rgba(75, 85, 99, 0.3);
+}
+
+[data-theme="dark"] .tools-item-content i {
+    color: #9ca3af;
+}
+
+[data-theme="dark"] .tools-item-content span {
+    color: #f3f4f6;
+}
+
+[data-theme="dark"] .toggle-label {
+    background-color: #4b5563;
+}
+
+[data-theme="dark"] .toggle-input:checked + .toggle-label {
+    background-color: #3b82f6;
+}

@@ -348,6 +348,40 @@ class ChatApp {
             });
         }
 
+        // Tools按钮事件
+        const toolsBtn = document.getElementById('toolsBtn');
+        const toolsDropdown = document.getElementById('toolsDropdown');
+        
+        if (toolsBtn && toolsDropdown) {
+            toolsBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.toggleToolsDropdown();
+            });
+
+            // 点击外部关闭tools下拉菜单
+            document.addEventListener('click', (e) => {
+                if (!toolsBtn.contains(e.target) && !toolsDropdown.contains(e.target)) {
+                    this.hideToolsDropdown();
+                }
+            });
+        }
+
+        // 联网搜索开关
+        const webSearchSwitch = document.getElementById('webSearchSwitch');
+        if (webSearchSwitch) {
+            webSearchSwitch.addEventListener('change', (e) => {
+                this.toggleWebSearch(e.target.checked);
+            });
+        }
+
+        // 创建图片开关
+        const imageGenerationSwitch = document.getElementById('imageGenerationSwitch');
+        if (imageGenerationSwitch) {
+            imageGenerationSwitch.addEventListener('change', (e) => {
+                this.toggleImageGeneration(e.target.checked);
+            });
+        }
+
         // 侧边栏折叠功能
         const sidebarToggle = document.getElementById('sidebarToggle');
         const sidebarExpand = document.getElementById('sidebarExpand');
@@ -3798,6 +3832,103 @@ class ChatApp {
     handleInputClick() {
         // 重新检查是否需要显示@角色选择
         this.handleRoleMentionInput({ target: document.getElementById('messageInput') });
+    }
+
+    // Tools功能相关方法
+    
+    // 切换tools下拉菜单显示状态
+    toggleToolsDropdown() {
+        const toolsBtn = document.getElementById('toolsBtn');
+        const toolsDropdown = document.getElementById('toolsDropdown');
+        
+        if (!toolsBtn || !toolsDropdown) return;
+
+        const isVisible = toolsDropdown.classList.contains('show');
+        
+        if (isVisible) {
+            this.hideToolsDropdown();
+        } else {
+            this.showToolsDropdown();
+        }
+    }
+
+    // 显示tools下拉菜单
+    showToolsDropdown() {
+        const toolsBtn = document.getElementById('toolsBtn');
+        const toolsDropdown = document.getElementById('toolsDropdown');
+        
+        if (!toolsBtn || !toolsDropdown) return;
+
+        toolsDropdown.classList.add('show');
+        toolsBtn.classList.add('active');
+        
+        // 加载当前设置状态
+        this.loadToolsSettings();
+    }
+
+    // 隐藏tools下拉菜单
+    hideToolsDropdown() {
+        const toolsBtn = document.getElementById('toolsBtn');
+        const toolsDropdown = document.getElementById('toolsDropdown');
+        
+        if (!toolsBtn || !toolsDropdown) return;
+
+        toolsDropdown.classList.remove('show');
+        toolsBtn.classList.remove('active');
+    }
+
+    // 加载tools设置状态
+    loadToolsSettings() {
+        const webSearchSwitch = document.getElementById('webSearchSwitch');
+        const imageGenerationSwitch = document.getElementById('imageGenerationSwitch');
+        
+        if (webSearchSwitch) {
+            // 从localStorage读取联网搜索设置，默认为false
+            const webSearchEnabled = localStorage.getItem('webSearchEnabled') === 'true';
+            webSearchSwitch.checked = webSearchEnabled;
+        }
+        
+        if (imageGenerationSwitch) {
+            // 从localStorage读取创建图片设置，默认为false
+            const imageGenerationEnabled = localStorage.getItem('imageGenerationEnabled') === 'true';
+            imageGenerationSwitch.checked = imageGenerationEnabled;
+        }
+    }
+
+    // 切换联网搜索功能
+    toggleWebSearch(enabled) {
+        localStorage.setItem('webSearchEnabled', enabled.toString());
+        
+        if (enabled) {
+            this.addSystemMessage('已开启联网搜索功能');
+        } else {
+            this.addSystemMessage('已关闭联网搜索功能');
+        }
+        
+        console.log('联网搜索功能:', enabled ? '开启' : '关闭');
+    }
+
+    // 切换创建图片功能
+    toggleImageGeneration(enabled) {
+        localStorage.setItem('imageGenerationEnabled', enabled.toString());
+        
+        if (enabled) {
+            this.addSystemMessage('已开启创建图片功能');
+        } else {
+            this.addSystemMessage('已关闭创建图片功能');
+        }
+        
+        console.log('创建图片功能:', enabled ? '开启' : '关闭');
+    }
+
+    // 获取联网搜索状态
+    isWebSearchEnabled() {
+        return localStorage.getItem('webSearchEnabled') === 'true';
+    }
+
+    // 获取创建图片状态
+    isImageGenerationEnabled() {
+        return localStorage.getItem('imageGenerationEnabled') === 'true';
     }
 }
 
