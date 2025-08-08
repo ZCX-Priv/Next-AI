@@ -17,6 +17,15 @@ class ChatApp {
         this.scrollThrottleTimer = null; // 滚动节流定时器
         this.renderQueue = new Map(); // 渲染队列，批量处理DOM更新
         
+        // 用户滚动状态跟踪
+        this.userScrolling = false; // 用户是否正在手动滚动
+        this.scrollTimeout = null; // 滚动超时定时器
+        this.lastScrollTop = 0; // 上次滚动位置
+        
+        // 回到底部按钮
+        this.scrollToBottomBtn = null; // 回到底部按钮引用
+        this.showScrollButtonThreshold = 200; // 显示按钮的滚动阈值
+        
         // @角色选择功能相关属性
         this.roleMentionState = {
             isVisible: false,
@@ -35,6 +44,7 @@ class ChatApp {
         this.initializeSidebarState();
         this.initializeModelOptions();
         this.updateModelDisplay();
+        this.initializeScrollToBottomButton();
         this.bindEvents();
         this.loadChatHistory();
         this.loadWelcomeMessage();
@@ -172,6 +182,15 @@ class ChatApp {
                 modelOptions.appendChild(option);
             });
         });
+    }
+
+    // 初始化回到底部按钮
+    initializeScrollToBottomButton() {
+        this.scrollToBottomBtn = document.getElementById('scrollToBottom');
+        if (!this.scrollToBottomBtn) return;
+        
+        // 初始状态隐藏按钮
+        this.scrollToBottomBtn.classList.remove('show');
     }
 
     bindEvents() {
@@ -350,6 +369,22 @@ class ChatApp {
         window.addEventListener('resize', () => {
             this.handleWindowResize();
         });
+
+        // 聊天容器滚动事件监听器
+        const chatContainer = document.querySelector('.chat-container');
+        if (chatContainer) {
+            chatContainer.addEventListener('scroll', () => {
+                this.handleUserScroll();
+                this.updateScrollToBottomButton();
+            });
+        }
+
+        // 回到底部按钮事件监听器
+        if (this.scrollToBottomBtn) {
+            this.scrollToBottomBtn.addEventListener('click', () => {
+                this.scrollToBottomWithButton();
+            });
+        }
     }
 
     // 处理窗口大小变化
@@ -478,7 +513,7 @@ class ChatApp {
         this.adjustTextareaHeight(messageInput);
 
         // 确保用户消息发送后滚动到底部
-        this.optimizedScrollToBottom();
+        this.forceScrollToBottom();
 
         // 创建AI消息容器并显示思考指示器
         console.log('创建AI消息容器...');
@@ -3134,19 +3169,128 @@ class ChatApp {
         this.updateRoleConfirmButton();
     }
 
-    // 优化的滚动方法 - 使用节流机制
+    // 处理用户滚动事件
+    handleUserScroll() {
+        const chatContainer = document.querySelector('.chat-container');
+        if (!chatContainer) return;
+
+        const currentScrollTop = chatContainer.scrollTop;
+        const scrollHeight = chatContainer.scrollHeight;
+        const clientHeight = chatContainer.clientHeight;
+        
+        // 检测用户是否向上滚动（不在底部）
+        const isAtBottom = Math.abs(scrollHeight - clientHeight - currentScrollTop) < 10;
+        
+        // 如果用户不在底部，标记为用户正在滚动
+        if (!isAtBottom) {
+            this.userScrolling = true;
+            
+            // 清除之前的超时定时器
+            if (this.scrollTimeout) {
+                clearTimeout(this.scrollTimeout);
+            }
+            
+            // 设置超时，如果用户停止滚动一段时间后重新启用自动滚动
+            this.scrollTimeout = setTimeout(() => {
+                // 再次检查是否在底部，如果在底部则恢复自动滚动
+                const newScrollTop = chatContainer.scrollTop;
+                const newIsAtBottom = Math.abs(scrollHeight - clientHeight - newScrollTop) < 10;
+                if (newIsAtBottom) {
+                    this.userScrolling = false;
+                }
+            }, 2000); // 2秒后检查
+        } else {
+            // 用户滚动到底部，恢复自动滚动
+            this.userScrolling = false;
+            if (this.scrollTimeout) {
+                clearTimeout(this.scrollTimeout);
+                this.scrollTimeout = null;
+            }
+        }
+        
+        this.lastScrollTop = currentScrollTop;
+    }
+
+    // 优化的滚动方法 - 使用节流机制，并检查用户滚动状态
     optimizedScrollToBottom() {
+        // 如果用户正在手动滚动，不执行自动滚动
+        if (this.userScrolling) {
+            return;
+        }
+        
         if (this.scrollThrottleTimer) {
             return; // 如果已有滚动请求在等待，直接返回
         }
         
         this.scrollThrottleTimer = requestAnimationFrame(() => {
             const chatContainer = document.querySelector('.chat-container');
-            if (chatContainer) {
+            if (chatContainer && !this.userScrolling) {
                 chatContainer.scrollTop = chatContainer.scrollHeight;
             }
             this.scrollThrottleTimer = null;
         });
+    }
+
+    // 强制滚动到底部（用于用户发送消息后）
+    forceScrollToBottom() {
+        // 重置用户滚动状态
+        this.userScrolling = false;
+        if (this.scrollTimeout) {
+            clearTimeout(this.scrollTimeout);
+            this.scrollTimeout = null;
+        }
+        
+        // 立即滚动到底部
+        const chatContainer = document.querySelector('.chat-container');
+        if (chatContainer) {
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+    }
+
+    // 更新回到底部按钮的显示状态
+    updateScrollToBottomButton() {
+        if (!this.scrollToBottomBtn) return;
+        
+        const chatContainer = document.querySelector('.chat-container');
+        if (!chatContainer) return;
+        
+        const scrollTop = chatContainer.scrollTop;
+        const scrollHeight = chatContainer.scrollHeight;
+        const clientHeight = chatContainer.clientHeight;
+        
+        // 检查是否在底部（允许10px的误差）
+        const isAtBottom = Math.abs(scrollHeight - clientHeight - scrollTop) < 10;
+        
+        // 只要不在底部就显示按钮
+        if (!isAtBottom) {
+            this.scrollToBottomBtn.classList.add('show');
+        } else {
+            this.scrollToBottomBtn.classList.remove('show');
+        }
+    }
+
+    // 通过按钮滚动到底部
+    scrollToBottomWithButton() {
+        const chatContainer = document.querySelector('.chat-container');
+        if (!chatContainer) return;
+        
+        // 平滑滚动到底部
+        chatContainer.scrollTo({
+            top: chatContainer.scrollHeight,
+            behavior: 'smooth'
+        });
+        
+        // 重置用户滚动状态
+        this.userScrolling = false;
+        if (this.scrollTimeout) {
+            clearTimeout(this.scrollTimeout);
+            this.scrollTimeout = null;
+        }
+        
+        // 隐藏按钮（会在滚动完成后自动隐藏）
+        setTimeout(() => {
+            this.updateScrollToBottomButton();
+        }, 500);
     }
 
     // 批量DOM更新方法

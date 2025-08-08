@@ -1499,18 +1499,20 @@ body {
 #messageInput {
     flex: 1;
     border: 2px solid var(--border-color);
-    border-radius: 14px;
-    padding: 14px 18px;
+    border-radius: 24px;
+    padding: 16px 24px;
     font-size: 15px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+    font-weight: 400;
     line-height: 1.5;
     resize: none;
     outline: none;
     transition: all 0.3s ease;
-    min-height: 48px;
+    min-height: 52px;
     max-height: 120px;
     background-color: var(--bg-primary);
     color: var(--text-primary);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
 #messageInput:focus {
@@ -1523,16 +1525,16 @@ body {
     background-color: var(--accent-color);
     color: white;
     border: none;
-    border-radius: 12px;
-    width: 48px;
-    height: 48px;
+    border-radius: 24px;
+    width: 52px;
+    height: 52px;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
     transition: all 0.3s ease;
     flex-shrink: 0;
-    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+    box-shadow: 0 4px 16px rgba(37, 99, 235, 0.25);
 }
 
 .send-btn:hover {
@@ -2161,12 +2163,15 @@ body {
     
     #messageInput {
         font-size: 16px; /* 防止iOS缩放 */
-        padding: 12px 16px;
+        padding: 14px 20px;
+        border-radius: 20px;
+        min-height: 48px;
     }
     
     .send-btn {
-        width: 44px; /* 调整发送按钮尺寸 */
-        height: 44px;
+        width: 48px; /* 调整发送按钮尺寸 */
+        height: 48px;
+        border-radius: 20px;
         font-size: 16px;
     }
 }
@@ -2742,5 +2747,69 @@ body {
     
     .toast-notification.hide {
         transform: translateY(-100%) scale(0.9);
+    }
+}
+
+/* 回到底部按钮样式 */
+.scroll-to-bottom {
+    position: fixed;
+    bottom: 120px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px) scale(0.8);
+    width: 48px;
+    height: 48px;
+    background: var(--accent-color);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    box-shadow: 0 4px 16px rgba(59, 130, 246, 0.3);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 1000;
+    opacity: 0;
+    visibility: hidden;
+    backdrop-filter: blur(8px);
+}
+
+.scroll-to-bottom.show {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(-50%) translateY(0) scale(1);
+}
+
+.scroll-to-bottom:hover {
+    background: #2563eb;
+    transform: translateX(-50%) translateY(-2px) scale(1.05);
+    box-shadow: 0 8px 24px rgba(59, 130, 246, 0.4);
+}
+
+.scroll-to-bottom:active {
+    transform: translateX(-50%) translateY(0) scale(0.95);
+}
+
+/* 夜间模式下的回到底部按钮 */
+[data-theme="dark"] .scroll-to-bottom {
+    background: var(--accent-color);
+    box-shadow: 0 4px 16px rgba(59, 130, 246, 0.4);
+}
+
+[data-theme="dark"] .scroll-to-bottom:hover {
+    background: #1d4ed8;
+    box-shadow: 0 8px 24px rgba(59, 130, 246, 0.5);
+}
+
+/* 移动端适配 */
+@media (max-width: 768px) {
+    .scroll-to-bottom {
+        bottom: 100px;
+        left: 50%;
+        transform: translateX(-50%) translateY(20px) scale(0.8);
+        width: 44px;
+        height: 44px;
+        font-size: 18px;
     }
 }
