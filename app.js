@@ -170,9 +170,21 @@ class ChatApp {
         // 清空现有选项
         modelOptions.innerHTML = '';
         
-        // 添加所有提供商的模型
+        // 按提供商分组显示模型
         providers.forEach(provider => {
-            (provider.models || []).forEach(model => {
+            if (!provider.models || provider.models.length === 0) return;
+            
+            // 创建提供商分组标题
+            const providerGroup = document.createElement('div');
+            providerGroup.className = 'provider-group';
+            
+            const providerHeader = document.createElement('div');
+            providerHeader.className = 'provider-header';
+            providerHeader.textContent = provider.name;
+            providerGroup.appendChild(providerHeader);
+            
+            // 添加该提供商的所有模型
+            provider.models.forEach(model => {
                 const option = document.createElement('div');
                 option.className = 'model-option';
                 option.dataset.model = model;
@@ -180,14 +192,16 @@ class ChatApp {
                 
                 // 获取模型别名
                 const modelAlias = this.configManager.getModelAlias(provider.key, model);
-                option.textContent = `${provider.name} - ${modelAlias}`;
+                option.textContent = modelAlias;
                 
                 if (model === this.currentModel) {
                     option.classList.add('active');
                 }
                 
-                modelOptions.appendChild(option);
+                providerGroup.appendChild(option);
             });
+            
+            modelOptions.appendChild(providerGroup);
         });
     }
 

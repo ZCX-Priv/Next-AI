@@ -992,6 +992,35 @@ body {
     color: white;
 }
 
+/* 提供商分组样式 */
+.provider-group {
+    border-bottom: 1px solid var(--border-color);
+}
+
+.provider-group:last-child {
+    border-bottom: none;
+}
+
+.provider-header {
+    padding: 8px 16px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    background-color: var(--bg-tertiary);
+    letter-spacing: 0.5px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.provider-group .model-option {
+    padding: 10px 24px;
+    margin-left: 0;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.provider-group .model-option:last-child {
+    border-bottom: none;
+}
+
 /* 聊天容器 */
 .chat-container {
     flex: 1;
