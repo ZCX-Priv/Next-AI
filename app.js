@@ -9,6 +9,8 @@ class ChatApp {
         this.messages = [];
         this.currentStreamInterval = null; // 当前流式传输间隔
         this.currentAiMessageDiv = null; // 当前AI消息容器引用
+        this.isResponseActive = false; // 是否有响应正在进行
+        this.hasReceivedResponse = false; // 是否已收到响应内容
         this.isDarkMode = this.getStoredTheme() === 'dark';
         this.selectedRoleId = null; // 角色选择模态框中选中的角色ID
         
@@ -48,6 +50,11 @@ class ChatApp {
         this.bindEvents();
         this.loadChatHistory();
         this.loadWelcomeMessage();
+        
+        // 确保初始状态滚动到底部（使用智能滚动）
+        setTimeout(() => {
+            this.smartScrollToBottom();
+        }, 800); // 等待欢迎消息加载完成
     }
 
     // 初始化主题
@@ -511,9 +518,11 @@ class ChatApp {
         this.addMessage('user', message);
         messageInput.value = '';
         this.adjustTextareaHeight(messageInput);
-
-        // 确保用户消息发送后滚动到底部
-        this.forceScrollToBottom();
+        
+        // 用户发送消息后立即滚动到底部
+        setTimeout(() => {
+            this.forceScrollToBottom();
+        }, 100);
 
         // 创建AI消息容器并显示思考指示器
         console.log('创建AI消息容器...');
@@ -579,7 +588,26 @@ class ChatApp {
         const provider = config.provider;
         
         if (!provider) {
-            this.addSystemMessage('没有可用的API提供商，请在设置中启用至少一个API');
+            // 移除思考指示器并添加特定的错误回复
+            if (this.currentAiMessageDiv) {
+                const messageContent = this.currentAiMessageDiv.querySelector('.message-content');
+                this.hideThinkingIndicator(messageContent);
+                this.messageRenderer.renderInstant(messageContent, '没有可用的API提供商，请在设置中启用至少一个API');
+                
+                // 保存到消息历史
+                this.messages.push({ 
+                    type: 'assistant', 
+                    content: '没有可用的API提供商，请在设置中启用至少一个API',
+                    responseTime: 0,
+                    timestamp: new Date(),
+                    hasThinking: false
+                });
+                
+                // 自动保存到聊天历史
+                this.chatHistoryManager.saveMessages(this.messages);
+            } else {
+                this.addMessage('assistant', '没有可用的API提供商，请在设置中启用至少一个API');
+            }
             this.resetSendButton();
             return;
         }
@@ -587,16 +615,54 @@ class ChatApp {
         // 验证API配置
         const validation = this.configManager.validateConfig(config.currentProvider);
         if (!validation.valid) {
-            this.addSystemMessage(`${validation.error}，请在设置中配置API密钥`);
+            // 移除思考指示器并添加统一的错误回复
+            if (this.currentAiMessageDiv) {
+                const messageContent = this.currentAiMessageDiv.querySelector('.message-content');
+                this.hideThinkingIndicator(messageContent);
+                this.messageRenderer.renderInstant(messageContent, '接口调用失败，请换个模型试试吧');
+                
+                // 保存到消息历史
+                this.messages.push({ 
+                    type: 'assistant', 
+                    content: '接口调用失败，请换个模型试试吧',
+                    responseTime: 0,
+                    timestamp: new Date(),
+                    hasThinking: false
+                });
+                
+                // 自动保存到聊天历史
+                this.chatHistoryManager.saveMessages(this.messages);
+            } else {
+                this.addMessage('assistant', '接口调用失败，请换个模型试试吧');
+            }
             this.resetSendButton();
             return;
         }
 
-        // 验证API密钥是否有效（仅对OpenRouter）
+        // 验证API密钥是否有效
         if (config.currentProvider === 'openrouter') {
             const isValidKey = await this.validateApiKey(config.currentProvider);
             if (!isValidKey) {
-                this.addSystemMessage('API密钥无效或已过期，请在设置中重新配置');
+                // 移除思考指示器并添加特定的错误回复
+                if (this.currentAiMessageDiv) {
+                    const messageContent = this.currentAiMessageDiv.querySelector('.message-content');
+                    this.hideThinkingIndicator(messageContent);
+                    this.messageRenderer.renderInstant(messageContent, '认证失败，请在设置中检查并重新配置API密钥');
+                    
+                    // 保存到消息历史
+                    this.messages.push({ 
+                        type: 'assistant', 
+                        content: '认证失败，请在设置中检查并重新配置API密钥',
+                        responseTime: 0,
+                        timestamp: new Date(),
+                        hasThinking: false
+                    });
+                    
+                    // 自动保存到聊天历史
+                    this.chatHistoryManager.saveMessages(this.messages);
+                } else {
+                    this.addMessage('assistant', '认证失败，请在设置中检查并重新配置API密钥');
+                }
                 this.resetSendButton();
                 return;
             }
@@ -604,6 +670,10 @@ class ChatApp {
 
         // 创建AbortController用于取消请求
         this.currentAbortController = new AbortController();
+        
+        // 设置响应状态
+        this.isResponseActive = true;
+        this.hasReceivedResponse = false;
 
         try {
             // 准备消息历史（根据上下文长度限制）
@@ -652,22 +722,28 @@ class ChatApp {
 
         } catch (error) {
             if (error.name === 'AbortError') {
-                this.addSystemMessage('生成已停止');
+                // 用户主动中止的请求，stopGeneration方法已经处理了消息显示
+                console.log('请求被用户中止');
             } else {
                 console.error('API调用错误:', error);
                 
-                // 移除思考指示器
+                // 根据错误类型确定回复消息
+                let errorMessage = '接口调用失败，请换个模型试试吧';
+                if (error.message.includes('401') || error.message.includes('403') || error.message.includes('Unauthorized')) {
+                    errorMessage = '认证失败，请在设置中检查并重新配置API密钥';
+                }
+                
+                // 移除思考指示器并添加错误回复
                 if (this.currentAiMessageDiv) {
                     const messageContent = this.currentAiMessageDiv.querySelector('.message-content');
                     this.hideThinkingIndicator(messageContent);
                     
-                    // 添加AI回复消息：接口调用失败，请换个模型试试吧
-                    this.messageRenderer.renderInstant(messageContent, '接口调用失败，请换个模型试试吧');
+                    this.messageRenderer.renderInstant(messageContent, errorMessage);
                     
                     // 保存到消息历史
                     this.messages.push({ 
                         type: 'assistant', 
-                        content: '接口调用失败，请换个模型试试吧',
+                        content: errorMessage,
                         responseTime: 0,
                         timestamp: new Date(),
                         hasThinking: false
@@ -675,25 +751,26 @@ class ChatApp {
                     
                     // 自动保存到聊天历史
                     this.chatHistoryManager.saveMessages(this.messages);
-                }
-                
-                // 添加系统消息提示
-                this.addSystemMessage(`API调用失败: ${error.message}`);
-                
-                // 如果是API密钥错误，提示用户在设置中重新配置
-                if (error.message.includes('401') || error.message.includes('403')) {
-                    this.addSystemMessage('认证失败，请在设置中检查并重新配置API密钥');
+                } else {
+                    // 如果没有AI消息容器，直接添加bot消息
+                    this.addMessage('assistant', errorMessage);
                 }
             }
         } finally {
             this.currentAbortController = null;
             this.currentAiMessageDiv = null; // 清理AI消息容器引用
+            this.isResponseActive = false; // 重置响应状态
+            this.hasReceivedResponse = false; // 重置接收状态
             this.resetSendButton();
         }
     }
 
     // 停止生成
     stopGeneration() {
+        // 检查是否有活跃的响应
+        const wasResponseActive = this.isResponseActive;
+        const hadReceivedResponse = this.hasReceivedResponse;
+        
         if (this.currentAbortController) {
             this.currentAbortController.abort();
         }
@@ -704,6 +781,35 @@ class ChatApp {
             this.currentStreamInterval = null;
         }
         
+        // 根据响应状态决定是否添加停止消息
+        if (wasResponseActive && !hadReceivedResponse) {
+            // 模型未响应时停止，添加bot消息
+            if (this.currentAiMessageDiv) {
+                const messageContent = this.currentAiMessageDiv.querySelector('.message-content');
+                this.hideThinkingIndicator(messageContent);
+                this.messageRenderer.renderInstant(messageContent, '已手动停止响应');
+                
+                // 保存到消息历史
+                this.messages.push({ 
+                    type: 'assistant', 
+                    content: '已手动停止响应',
+                    responseTime: 0,
+                    timestamp: new Date(),
+                    hasThinking: false
+                });
+                
+                // 自动保存到聊天历史
+                this.chatHistoryManager.saveMessages(this.messages);
+            } else {
+                // 如果没有AI消息容器，直接添加bot消息
+                this.addMessage('assistant', '已手动停止响应');
+            }
+        }
+        // 如果模型正在响应时停止，则正常切断响应，不添加额外消息
+        
+        // 重置状态
+        this.isResponseActive = false;
+        this.hasReceivedResponse = false;
         this.resetSendButton();
     }
 
@@ -804,6 +910,7 @@ class ChatApp {
                                 if (!hasReceivedContent) {
                                     this.hideThinkingIndicator(messageContent);
                                     hasReceivedContent = true;
+                                    this.hasReceivedResponse = true; // 标记已收到响应
                                 }
                             }
                             
@@ -815,6 +922,7 @@ class ChatApp {
                                 if (!hasReceivedContent) {
                                     this.hideThinkingIndicator(messageContent);
                                     hasReceivedContent = true;
+                                    this.hasReceivedResponse = true; // 标记已收到响应
                                 }
                             }
                             
@@ -899,11 +1007,31 @@ class ChatApp {
             // 区分不同类型的错误
             if (error.name === 'AbortError') {
                 console.log('请求被用户中止');
-                // 对于用户主动中止的请求，不显示错误消息
-                // 只是清理状态即可
+                // 对于用户主动中止的请求，stopGeneration方法已经处理了消息显示
+                // 这里只需要清理状态即可
             } else {
                 console.error('流式响应处理错误:', error);
-                this.addSystemMessage('响应处理失败');
+                
+                // 根据错误类型确定回复消息
+                let errorMessage = '接口调用失败，请换个模型试试吧';
+                if (error.message.includes('401') || error.message.includes('403') || error.message.includes('Unauthorized')) {
+                    errorMessage = '认证失败，请在设置中检查并重新配置API密钥';
+                }
+                
+                // 显示错误回复消息
+                this.messageRenderer.renderInstant(messageContent, errorMessage);
+                
+                // 保存到消息历史
+                this.messages.push({ 
+                    type: 'assistant', 
+                    content: errorMessage,
+                    responseTime: 0,
+                    timestamp: new Date(),
+                    hasThinking: false
+                });
+                
+                // 自动保存到聊天历史
+                this.chatHistoryManager.saveMessages(this.messages);
             }
         } finally {
             // 清理AI消息容器引用
@@ -1243,8 +1371,15 @@ class ChatApp {
         }
 
         // 滚动到底部
-        const chatContainer = document.querySelector('.chat-container');
-        chatContainer.scrollTop = chatContainer.scrollHeight;
+        if (type === 'user') {
+            // 用户发送消息时使用平滑滚动
+            setTimeout(() => {
+                this.forceScrollToBottom();
+            }, 50); // 稍微延迟以确保DOM更新完成
+        } else {
+            // AI消息使用普通滚动
+            this.optimizedScrollToBottom();
+        }
 
         // 保存消息（可选）
         if (saveMessage) {
@@ -1762,6 +1897,11 @@ class ChatApp {
         document.getElementById('messages').innerHTML = '';
         this.loadWelcomeMessage();
         
+        // 新建聊天后滚动到底部（使用智能滚动）
+        setTimeout(() => {
+            this.smartScrollToBottom();
+        }, 800); // 等待欢迎消息加载完成
+        
         this.renderChatList();
     }
 
@@ -1788,6 +1928,11 @@ class ChatApp {
             const showActions = msg.type === 'assistant';
             this.addMessage(msg.type, msg.content, false, false, msg.responseTime, showActions);
         });
+        
+        // 切换聊天后滚动到底部（使用智能滚动）
+        setTimeout(() => {
+            this.smartScrollToBottom();
+        }, 200);
         
         // 移动端自动收起侧边栏
         const isMobile = window.innerWidth <= 768;
@@ -3225,10 +3370,62 @@ class ChatApp {
         this.scrollThrottleTimer = requestAnimationFrame(() => {
             const chatContainer = document.querySelector('.chat-container');
             if (chatContainer && !this.userScrolling) {
-                chatContainer.scrollTop = chatContainer.scrollHeight;
+                // 检查是否已经接近底部，如果是则使用平滑滚动
+                const scrollTop = chatContainer.scrollTop;
+                const scrollHeight = chatContainer.scrollHeight;
+                const clientHeight = chatContainer.clientHeight;
+                const distanceFromBottom = scrollHeight - clientHeight - scrollTop;
+                
+                if (distanceFromBottom < 100) {
+                    // 接近底部时使用平滑滚动
+                    chatContainer.scrollTo({
+                        top: chatContainer.scrollHeight,
+                        behavior: 'smooth'
+                    });
+                } else {
+                    // 距离较远时直接跳转
+                    chatContainer.scrollTop = chatContainer.scrollHeight;
+                }
             }
             this.scrollThrottleTimer = null;
         });
+    }
+
+    // 智能滚动到底部（根据用户行为决定滚动方式）
+    smartScrollToBottom() {
+        const chatContainer = document.querySelector('.chat-container');
+        if (!chatContainer) return;
+        
+        const scrollTop = chatContainer.scrollTop;
+        const scrollHeight = chatContainer.scrollHeight;
+        const clientHeight = chatContainer.clientHeight;
+        const distanceFromBottom = scrollHeight - clientHeight - scrollTop;
+        
+        // 如果用户已经在底部附近（50px内），使用平滑滚动
+        if (distanceFromBottom <= 50) {
+            chatContainer.scrollTo({
+                top: chatContainer.scrollHeight,
+                behavior: 'smooth'
+            });
+        } 
+        // 如果用户距离底部较远但不是在手动滚动，使用快速滚动
+        else if (!this.userScrolling && distanceFromBottom <= 200) {
+            chatContainer.scrollTo({
+                top: chatContainer.scrollHeight,
+                behavior: 'smooth'
+            });
+        }
+        // 如果用户明显在查看历史消息，不自动滚动
+        else if (this.userScrolling || distanceFromBottom > 200) {
+            return;
+        }
+        
+        // 重置用户滚动状态
+        this.userScrolling = false;
+        if (this.scrollTimeout) {
+            clearTimeout(this.scrollTimeout);
+            this.scrollTimeout = null;
+        }
     }
 
     // 强制滚动到底部（用于用户发送消息后）
@@ -3240,10 +3437,13 @@ class ChatApp {
             this.scrollTimeout = null;
         }
         
-        // 立即滚动到底部
+        // 使用平滑滚动到底部
         const chatContainer = document.querySelector('.chat-container');
         if (chatContainer) {
-            chatContainer.scrollTop = chatContainer.scrollHeight;
+            chatContainer.scrollTo({
+                top: chatContainer.scrollHeight,
+                behavior: 'smooth'
+            });
         }
     }
 
