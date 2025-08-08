@@ -366,13 +366,7 @@ class ChatApp {
             });
         }
 
-        // 联网搜索开关
-        const webSearchSwitch = document.getElementById('webSearchSwitch');
-        if (webSearchSwitch) {
-            webSearchSwitch.addEventListener('change', (e) => {
-                this.toggleWebSearch(e.target.checked);
-            });
-        }
+
 
         // 创建图片开关
         const imageGenerationSwitch = document.getElementById('imageGenerationSwitch');
@@ -3879,33 +3873,13 @@ class ChatApp {
 
     // 加载tools设置状态
     loadToolsSettings() {
-        const webSearchSwitch = document.getElementById('webSearchSwitch');
         const imageGenerationSwitch = document.getElementById('imageGenerationSwitch');
-        
-        if (webSearchSwitch) {
-            // 从localStorage读取联网搜索设置，默认为false
-            const webSearchEnabled = localStorage.getItem('webSearchEnabled') === 'true';
-            webSearchSwitch.checked = webSearchEnabled;
-        }
         
         if (imageGenerationSwitch) {
             // 从localStorage读取创建图片设置，默认为false
             const imageGenerationEnabled = localStorage.getItem('imageGenerationEnabled') === 'true';
             imageGenerationSwitch.checked = imageGenerationEnabled;
         }
-    }
-
-    // 切换联网搜索功能
-    toggleWebSearch(enabled) {
-        localStorage.setItem('webSearchEnabled', enabled.toString());
-        
-        if (enabled) {
-            this.addSystemMessage('已开启联网搜索功能');
-        } else {
-            this.addSystemMessage('已关闭联网搜索功能');
-        }
-        
-        console.log('联网搜索功能:', enabled ? '开启' : '关闭');
     }
 
     // 切换创建图片功能
@@ -3919,11 +3893,6 @@ class ChatApp {
         }
         
         console.log('创建图片功能:', enabled ? '开启' : '关闭');
-    }
-
-    // 获取联网搜索状态
-    isWebSearchEnabled() {
-        return localStorage.getItem('webSearchEnabled') === 'true';
     }
 
     // 获取创建图片状态
