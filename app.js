@@ -155,7 +155,7 @@ class ChatApp {
         
         // 添加所有提供商的模型
         providers.forEach(provider => {
-            provider.models.forEach(model => {
+            (provider.models || []).forEach(model => {
                 const option = document.createElement('div');
                 option.className = 'model-option';
                 option.dataset.model = model;
@@ -458,19 +458,16 @@ class ChatApp {
 
         console.log('发送消息:', message);
 
-        // 检查当前聊天是否有用户消息
+        // 检查当前聊天状态
         const currentChat = this.chatHistoryManager.getCurrentChat();
         const hasUserMessages = this.messages.some(msg => msg.type === 'user');
 
-        let targetChatId = this.chatHistoryManager.currentChatId;
-
-        // 如果没有用户消息，创建新聊天；否则直接在当前聊天中添加消息
-        if (!hasUserMessages) {
-            // 使用第一条消息内容作为标题创建新聊天
+        // 如果没有当前聊天，或者当前聊天不是手动创建且没有用户消息，则自动创建新聊天
+        if (!currentChat || (!currentChat.isManuallyCreated && !hasUserMessages)) {
+            // 使用第一条消息内容作为标题创建新聊天（自动创建）
             const newTitle = this.chatHistoryManager.generateTitle([{type: 'user', content: message}]);
-            const newChat = this.chatHistoryManager.createNewChat(newTitle);
-            targetChatId = newChat.id;
-            this.chatHistoryManager.currentChatId = targetChatId;
+            const newChat = this.chatHistoryManager.createNewChat(newTitle, false);
+            this.chatHistoryManager.currentChatId = newChat.id;
             this.messages = []; // 清空当前消息列表（包括欢迎消息）
             this.renderChatList();
         }
@@ -1657,11 +1654,7 @@ class ChatApp {
         chatHistory.innerHTML = '';
 
         const chats = this.chatHistoryManager.getChatList();
-        if (chats.length === 0) {
-            // 如果没有聊天，创建一个默认的
-            const newChat = this.chatHistoryManager.createNewChat('新建聊天');
-            this.chatHistoryManager.currentChatId = newChat.id;
-        }
+        // 不再自动创建新聊天，让用户手动创建
 
         this.renderChatList();
     }
@@ -1726,8 +1719,8 @@ class ChatApp {
         // 保存当前聊天
         this.saveCurrentChat();
         
-        // 创建新聊天
-        const newChat = this.chatHistoryManager.createNewChat('新建聊天');
+        // 创建新聊天（手动创建）
+        const newChat = this.chatHistoryManager.createNewChat('新建聊天', true);
         this.chatHistoryManager.currentChatId = newChat.id;
         
         this.messages = [];
@@ -1825,15 +1818,18 @@ class ChatApp {
                     if (chats.length > 0) {
                         this.selectChat(chats[0].id);
                     } else {
-                        this.newChat();
-                    }
-                } else {
-                    // 如果删除的不是当前聊天，但删除后没有聊天了，创建新聊天
-                    if (chats.length === 0) {
-                        this.newChat();
-                    } else {
+                        // 删除最后一个聊天后，清空当前状态但不自动新建
+                        this.chatHistoryManager.currentChatId = null;
+                        this.messages = [];
+                        const messagesContainer = document.getElementById('messages');
+                        if (messagesContainer) {
+                            messagesContainer.innerHTML = '';
+                        }
                         this.renderChatList();
                     }
+                } else {
+                    // 如果删除的不是当前聊天，只需要重新渲染列表
+                    this.renderChatList();
                 }
                 
                 this.addSystemMessage(`✅ 聊天 "${chat.title}" 已删除`);
@@ -1848,7 +1844,18 @@ class ChatApp {
         
         if (confirmed) {
             this.chatHistoryManager.clearAllChats();
-            this.newChat();
+            this.chatHistoryManager.currentChatId = null;
+            this.messages = [];
+            
+            // 清空消息容器
+            const messagesContainer = document.getElementById('messages');
+            if (messagesContainer) {
+                messagesContainer.innerHTML = '';
+            }
+            
+            // 重新渲染聊天列表（现在应该是空的）
+            this.renderChatList();
+            
             this.addSystemMessage('✅ 所有聊天记录已清空');
         }
     }
@@ -2387,7 +2394,7 @@ class ChatApp {
             item.innerHTML = `
                 <div class="provider-info">
                     <div class="provider-name">${provider.name}</div>
-                    <div class="provider-models">${provider.models.join(', ')}</div>
+                    <div class="provider-models">${(provider.models || []).join(', ')}</div>
                 </div>
                 <div class="toggle-switch ${provider.enabled ? 'active' : ''}" data-provider="${provider.key}">
                     <div class="toggle-slider"></div>

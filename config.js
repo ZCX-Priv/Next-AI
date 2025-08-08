@@ -6,13 +6,7 @@ const API_CONFIG = {
         enabled: false, 
         baseURL: 'https://api.openai.com/v1/chat/completions',
         apiKey: '', // 请在此处填入您的API密钥
-        models: [
-            'gpt-4-turbo-preview',
-            'gpt-4',
-            'gpt-3.5-turbo',
-            'gpt-3.5-turbo-16k'
-        ],
-        modelAliases: {
+        models: {
             'gpt-4-turbo-preview': 'GPT-4 Turbo',
             'gpt-4': 'GPT-4',
             'gpt-3.5-turbo': 'GPT-3.5 Turbo',
@@ -30,13 +24,7 @@ const API_CONFIG = {
         enabled: false, 
         baseURL: 'https://generativelanguage.googleapis.com/v1beta3',
         apiKey: '', // 请在此处填入您的API密钥
-        models: [
-            'gemini-pro',
-            'gemini-pro-vision',
-            'gemini-1.5-pro',
-            'gemini-1.5-flash'
-        ],
-        modelAliases: {
+        models: {
             'gemini-pro': 'Gemini Pro',
             'gemini-pro-vision': 'Gemini Pro Vision',
             'gemini-1.5-pro': 'Gemini 1.5 Pro',
@@ -53,14 +41,7 @@ const API_CONFIG = {
         enabled: false, 
         baseURL: 'https://api.anthropic.com/v1/messages',
         apiKey: '', // 请在此处填入您的API密钥
-        models: [
-            'claude-3-opus-20240229',
-            'claude-3-sonnet-20240229',
-            'claude-3-haiku-20240307',
-            'claude-2.1',
-            'claude-2.0'
-        ],
-        modelAliases: {
+        models: {
             'claude-3-opus-20240229': 'Claude 3 Opus',
             'claude-3-sonnet-20240229': 'Claude 3 Sonnet',
             'claude-3-haiku-20240307': 'Claude 3 Haiku',
@@ -80,12 +61,7 @@ const API_CONFIG = {
         enabled: false, 
         baseURL: 'https://api.deepseek.com/v1/chat/completions',
         apiKey: '', // 请在此处填入您的API密钥
-        models: [
-            'deepseek-chat',
-            'deepseek-coder',
-            'deepseek-math'
-        ],
-        modelAliases: {
+        models: {
             'deepseek-chat': 'DeepSeek Chat',
             'deepseek-coder': 'DeepSeek Coder',
             'deepseek-math': 'DeepSeek Math'
@@ -102,11 +78,7 @@ const API_CONFIG = {
         enabled: false, 
         baseURL: 'https://api.x.ai/v1/chat/completions',
         apiKey: '', // 请在此处填入您的API密钥
-        models: [
-            'grok-beta',
-            'grok-vision-beta'
-        ],
-        modelAliases: {
+        models: {
             'grok-beta': 'Grok Beta',
             'grok-vision-beta': 'Grok Vision Beta'
         },
@@ -121,17 +93,8 @@ const API_CONFIG = {
         name: 'OpenRouter',
         enabled: true, 
         baseURL: 'https://openrouter.ai/api/v1/chat/completions',
-        apiKey: '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', // 请在此处填入您的API密钥
-        models: [
-            'deepseek/deepseek-chat-v3-0324:free',
-            'deepseek/deepseek-r1-0528:free',
-            'qwen/qwq-32b:free',
-            'qwen/qwen3-235b-a22b:free',
-            'z-ai/glm-4.5-air:free',
-            'moonshotai/kimi-k2:free',
-            'tencent/hunyuan-a13b-instruct:free'
-        ],
-        modelAliases: {
+        apiKey: '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', // 请在此处填入您的API密钥
+        models: {
             'deepseek/deepseek-chat-v3-0324:free': 'DeepSeek V3',
             'deepseek/deepseek-r1-0528:free': 'DeepSeek R1',
             'qwen/qwq-32b:free': '通义千问 QwQ',
@@ -154,17 +117,7 @@ const API_CONFIG = {
         enabled: true, 
         baseURL: 'https://text.pollinations.ai/openai',
         apiKey: '38DJtIV7dXrRdYNl', // Pollinations通常不需要API密钥
-        models: [
-            'openai',
-            'openai-fast',
-            'grok',
-            'glm',
-            'evil',
-            'mistral',
-            'qwen',
-            'deepseek-reasoning'
-        ],
-        modelAliases: {
+        models: {
             'openai': 'OpenAI',
             'openai-fast': 'OpenAI Fast',
             'grok': 'Grok-3',
@@ -188,15 +141,7 @@ const API_CONFIG = {
         enabled: false, 
         baseURL: 'http://localhost:11434/v1/chat/completions',
         apiKey: '', // Ollama不需要API密钥
-        models: [
-            'llama3.2',
-            'llama3.1',
-            'qwen2.5',
-            'deepseek-coder-v2',
-            'codellama',
-            'mistral'
-        ],
-        modelAliases: {
+        models: {
             'llama3.2': 'Llama 3.2',
             'llama3.1': 'Llama 3.1',
             'qwen2.5': 'Qwen 2.5',
@@ -235,11 +180,14 @@ class ConfigManager {
         const enabledProviders = this.getProviders();
         if (enabledProviders.length > 0) {
             const firstProvider = enabledProviders[0];
-            const firstModel = firstProvider.models[0];
-            return {
-                provider: firstProvider.key,
-                model: firstModel
-            };
+            const modelKeys = Object.keys(firstProvider.models || {});
+            if (modelKeys.length > 0) {
+                const firstModel = modelKeys[0];
+                return {
+                    provider: firstProvider.key,
+                    model: firstModel
+                };
+            }
         }
         // 如果没有启用的提供商，返回null
         return null;
@@ -265,9 +213,12 @@ class ConfigManager {
         
         // 如果当前模型为null或在当前提供商中不存在，使用该提供商的第一个模型
         const currentProvider = this.getCurrentProvider();
-        if (currentProvider && (!this.config.currentModel || !currentProvider.models.includes(this.config.currentModel))) {
-            this.config.currentModel = currentProvider.models[0];
-            this.saveConfig();
+        if (currentProvider && (!this.config.currentModel || !currentProvider.models.hasOwnProperty(this.config.currentModel))) {
+            const modelKeys = Object.keys(currentProvider.models || {});
+            if (modelKeys.length > 0) {
+                this.config.currentModel = modelKeys[0];
+                this.saveConfig();
+            }
         }
     }
 
@@ -348,7 +299,7 @@ class ConfigManager {
     // 设置当前模型
     setModel(model) {
         const provider = this.getCurrentProvider();
-        if (provider && provider.models.includes(model)) {
+        if (provider && provider.models && provider.models.hasOwnProperty(model)) {
             this.config.currentModel = model;
             this.saveConfig();
             return true;
@@ -423,10 +374,10 @@ class ConfigManager {
     // 获取模型别名
     getModelAlias(provider, model) {
         const providerConfig = API_CONFIG[provider];
-        if (!providerConfig || !providerConfig.modelAliases) {
-            return model; // 如果没有别名配置，返回原始模型名
+        if (!providerConfig || !providerConfig.models) {
+            return model; // 如果没有模型配置，返回原始模型名
         }
-        return providerConfig.modelAliases[model] || model;
+        return providerConfig.models[model] || model;
     }
 
     // 获取当前模型的别名
@@ -470,7 +421,7 @@ class ConfigManager {
             key,
             name: API_CONFIG[key].name,
             enabled: API_CONFIG[key].enabled,
-            models: API_CONFIG[key].models
+            models: Object.keys(API_CONFIG[key].models || {})
         }));
     }
 
@@ -481,7 +432,7 @@ class ConfigManager {
             .map(key => ({
                 key,
                 name: API_CONFIG[key].name,
-                models: API_CONFIG[key].models
+                models: Object.keys(API_CONFIG[key].models || {})
             }));
     }
 

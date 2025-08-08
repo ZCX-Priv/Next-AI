@@ -26,13 +26,14 @@ class ChatHistoryManager {
     }
 
     // 创建新聊天
-    createNewChat(title = '新建聊天') {
+    createNewChat(title = '新建聊天', isManuallyCreated = false) {
         const chat = {
             id: Date.now().toString(),
             title: title,
             messages: [],
             createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
+            updatedAt: new Date().toISOString(),
+            isManuallyCreated: isManuallyCreated
         };
         
         this.chats.unshift(chat);
