@@ -1849,6 +1849,18 @@ class ChatApp {
         
         chatHistory.innerHTML = '';
         
+        // 如果没有聊天历史，显示提示信息
+        if (chats.length === 0) {
+            const emptyState = document.createElement('div');
+            emptyState.className = 'empty-chat-history';
+            emptyState.innerHTML = `
+                <i class="fas fa-comments"></i>
+                <span>暂无历史对话</span>
+            `;
+            chatHistory.appendChild(emptyState);
+            return;
+        }
+        
         chats.forEach(chat => {
             const chatItem = document.createElement('div');
             chatItem.className = 'chat-item';
