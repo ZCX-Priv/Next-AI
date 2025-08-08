@@ -165,6 +165,7 @@ const IMAGE_API_CONFIG = {
         enabled: false,
         baseURL: 'https://api.openai.com/v1/images/generations',
         apiKey: '', // 请在此处填入您的API密钥
+        method: 'POST', // OpenAI使用POST方法
         models: {
             'dall-e-3': 'DALL-E 3',
             'dall-e-2': 'DALL-E 2'
@@ -181,6 +182,7 @@ const IMAGE_API_CONFIG = {
         enabled: true,
         baseURL: 'https://image.pollinations.ai/prompt',
         apiKey: '38DJtIV7dXrRdYNl', 
+        method: 'GET', // Pollinations使用GET方法
         models: {
             'turbo': '快速生成',
             'flux': 'Flux 通用版',
@@ -190,7 +192,7 @@ const IMAGE_API_CONFIG = {
             'flux-anime': 'Flux 动漫风格',
         },
         headers: {
-            'Content-Type': 'application/json'
+            // GET请求不需要Content-Type
         }
     },
 
@@ -200,6 +202,7 @@ const IMAGE_API_CONFIG = {
         enabled: false,
         baseURL: 'https://api.stability.ai/v1/generation',
         apiKey: '', // 请在此处填入您的API密钥
+        method: 'POST', // Stability AI使用POST方法
         models: {
             'stable-diffusion-xl-1024-v1-0': 'Stable Diffusion XL',
             'stable-diffusion-v1-6': 'Stable Diffusion v1.6',
@@ -217,6 +220,7 @@ const IMAGE_API_CONFIG = {
         enabled: false,
         baseURL: 'https://api.midjourney.com/v1/imagine',
         apiKey: '', // 请在此处填入您的API密钥
+        method: 'POST', // Midjourney使用POST方法
         models: {
             'midjourney-v6': 'Midjourney v6',
             'midjourney-v5': 'Midjourney v5',
@@ -660,6 +664,30 @@ class ConfigManager {
         });
 
         return headers;
+    }
+
+    // 获取图片API请求头
+    getImageHeaders(provider) {
+        const providerConfig = IMAGE_API_CONFIG[provider];
+        if (!providerConfig) return {};
+
+        const headers = { ...providerConfig.headers };
+        const apiKey = providerConfig.apiKey;
+
+        // 替换API密钥占位符
+        Object.keys(headers).forEach(key => {
+            if (typeof headers[key] === 'string') {
+                headers[key] = headers[key].replace('{API_KEY}', apiKey);
+            }
+        });
+
+        return headers;
+    }
+
+    // 获取图片API的HTTP方法
+    getImageMethod(provider) {
+        const providerConfig = IMAGE_API_CONFIG[provider];
+        return providerConfig?.method || 'POST'; // 默认使用POST方法
     }
 
     // 启用或禁用API提供商
