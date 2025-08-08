@@ -338,15 +338,9 @@ class ChatApp {
             });
         }
 
-        // 清空消息按钮
-        const clearMessages = document.getElementById('clearMessages');
-        if (clearMessages) {
-            clearMessages.addEventListener('click', () => {
-                this.clearMessages();
-            });
-        }
 
-        // 设置按钮（右上角）
+
+        // 设置按钮
         const settingsToggle = document.getElementById('settingsToggle');
         if (settingsToggle) {
             settingsToggle.addEventListener('click', () => {
@@ -2777,24 +2771,7 @@ class ChatApp {
         }
     }
 
-    // 清空消息
-    async clearMessages() {
-        const confirmed = await this.showConfirmDialog(
-            '确定要清空所有消息吗？此操作不可撤销。'
-        );
-        
-        if (confirmed) {
-            const messagesContainer = document.getElementById('messages');
-            if (messagesContainer) {
-                messagesContainer.innerHTML = '';
-            }
-            this.messages = [];
-            
-            // 清空后重新加载欢迎消息
-            this.loadWelcomeMessage();
-            this.addSystemMessage('✅ 消息已清空');
-        }
-    }
+
 
     // 显示角色选择模态框
     showRoleModal() {
