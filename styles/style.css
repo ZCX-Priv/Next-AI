@@ -340,7 +340,6 @@ body {
 
 .sidebar-header {
     padding: 16px;
-    border-bottom: 1px solid var(--border-color);
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -991,7 +990,6 @@ body {
 /* 模型选择器 */
 .model-selector {
     padding: 16px 24px;
-    border-bottom: 1px solid var(--border-color);
     background-color: var(--bg-primary);
     display: flex;
     align-items: center;
