@@ -106,7 +106,7 @@
                         <div class="welcome-logo">
                             <i class="fas fa-robot"></i>
                         </div>
-                        <h1 class="welcome-title">欢迎使用 NextAI</h1>
+                        <h1 class="welcome-title" id="welcomeTitle">欢迎使用 NextAI</h1>
                         <p class="welcome-subtitle">您的智能对话助手，随时为您提供帮助</p>
                     </div>
                 </div>
@@ -233,6 +233,36 @@
         </div>
     </div>
 
+    <script>
+        // 动态问候语函数
+        function updateGreeting() {
+            const now = new Date();
+            const hour = now.getHours();
+            let greeting = '';
+            
+            if (hour >= 23 || hour < 6) {
+                greeting = '夜深了，';
+            } else if (hour >= 6 && hour < 12) {
+                greeting = '早上好，';
+            } else if (hour >= 12 && hour < 14) {
+                greeting = '中午好，';
+            } else if (hour >= 14 && hour < 18) {
+                greeting = '下午好，';
+            } else if (hour >= 18 && hour < 23) {
+                greeting = '晚上好，';
+            }
+            
+            const welcomeTitle = document.getElementById('welcomeTitle');
+            if (welcomeTitle) {
+                welcomeTitle.textContent = greeting + '欢迎使用 NextAI';
+            }
+        }
+        
+        // 页面加载时执行
+        document.addEventListener('DOMContentLoaded', function() {
+            updateGreeting();
+        });
+    </script>
     <script src="./scripts/app.js"></script>
 </body>
 </html>
