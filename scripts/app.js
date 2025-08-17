@@ -62,15 +62,8 @@ class ChatApp {
         const themeToggle = document.getElementById('themeToggle');
         if (!themeToggle) return; // 如果找不到元素，直接返回
         
-        if (this.isDarkMode) {
-            document.documentElement.setAttribute('data-theme', 'dark');
-            themeToggle.innerHTML = '<i class="fas fa-moon"></i>';
-            themeToggle.classList.add('dark-mode');
-        } else {
-            document.documentElement.setAttribute('data-theme', 'light');
-            themeToggle.innerHTML = '<i class="fas fa-sun"></i>';
-            themeToggle.classList.remove('dark-mode');
-        }
+        // 使用updateThemeDisplay来统一处理主题显示
+        this.updateThemeDisplay();
 
         // 监听系统主题变化
         this.setupSystemThemeListener();
@@ -110,17 +103,24 @@ class ChatApp {
     // 更新主题显示
     updateThemeDisplay() {
         const themeToggle = document.getElementById('themeToggle');
+        const themeText = document.getElementById('themeText');
         if (!themeToggle) return;
 
         const theme = this.isDarkMode ? 'dark' : 'light';
         document.documentElement.setAttribute('data-theme', theme);
 
         if (this.isDarkMode) {
-            themeToggle.innerHTML = '<i class="fas fa-moon"></i>';
+            themeToggle.querySelector('i').className = 'fas fa-moon';
             themeToggle.classList.add('dark-mode');
+            if (themeText) {
+                themeText.textContent = '夜间模式';
+            }
         } else {
-            themeToggle.innerHTML = '<i class="fas fa-sun"></i>';
+            themeToggle.querySelector('i').className = 'fas fa-sun';
             themeToggle.classList.remove('dark-mode');
+            if (themeText) {
+                themeText.textContent = '白昼模式';
+            }
         }
     }
 
