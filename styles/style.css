@@ -427,15 +427,16 @@ body {
     border: none;
     color: var(--text-secondary);
     cursor: pointer;
-    padding: 8px 12px;
+    padding: 12px 16px;
     border-radius: 0;
     transition: color 0.3s ease;
     display: none;
     align-items: center;
     justify-content: center;
-    height: 36px;
-    min-width: 36px;
-    margin-right: 12px;
+    height: 44px;
+    min-width: 44px;
+    margin-right: 8px;
+    font-size: 16px;
 }
 
 .sidebar-expand-btn:hover {
@@ -1029,7 +1030,7 @@ body {
     display: flex;
     align-items: center;
     justify-content: flex-start; /* 改为左对齐，不居中 */
-    gap: 12px;
+    gap: 8px;
     transition: background-color 0.3s ease, border-color 0.3s ease;
 }
 
@@ -1045,12 +1046,12 @@ body {
     background: var(--bg-primary);
     border: none;
     border-radius: 8px;
-    padding: 8px 16px;
+    padding: 10px 18px;
     display: flex;
     align-items: center;
     gap: 8px;
     cursor: pointer;
-    font-size: 14px;
+    font-size: 16px;
     transition: all 0.2s;
     color: var(--text-primary);
 }

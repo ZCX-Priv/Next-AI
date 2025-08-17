@@ -49,7 +49,11 @@ class ChatApp {
         this.initializeScrollToBottomButton();
         this.bindEvents();
         this.loadChatHistory();
-        // 欢迎消息已删除
+        
+        // 检查是否需要显示欢迎界面（当没有其他消息时）
+        if (this.messages.length === 0) {
+            this.showWelcomeScreen();
+        }
         
         // 确保初始状态滚动到底部（使用智能滚动）
         setTimeout(() => {
@@ -1562,6 +1566,11 @@ class ChatApp {
 
         // 删除DOM元素
         messageDiv.remove();
+        
+        // 检查是否需要显示欢迎界面（当没有其他消息时）
+        if (this.messages.length === 0) {
+            this.showWelcomeScreen();
+        }
     }
 
 
@@ -2071,7 +2080,7 @@ class ChatApp {
                     if (chats.length > 0) {
                         this.selectChat(chats[0].id);
                     } else {
-                        // 删除最后一个聊天后，清空当前状态但不自动新建
+                        // 删除最后一个聊天后，清空当前状态并显示欢迎界面
                         this.chatHistoryManager.currentChatId = null;
                         this.messages = [];
                         const messagesContainer = document.getElementById('messages');
@@ -2079,13 +2088,16 @@ class ChatApp {
                             messagesContainer.innerHTML = '';
                         }
                         this.renderChatList();
+                        this.showWelcomeScreen();
                     }
                 } else {
                     // 如果删除的不是当前聊天，只需要重新渲染列表
                     this.renderChatList();
+                    // 如果删除后当前聊天没有消息，显示欢迎界面
+                    if (this.messages.length === 0) {
+                        this.showWelcomeScreen();
+                    }
                 }
-                
-                this.addSystemMessage(`✅ 聊天 "${chat.title}" 已删除`);
             }
         }
     }
@@ -2109,7 +2121,8 @@ class ChatApp {
             // 重新渲染聊天列表（现在应该是空的）
             this.renderChatList();
             
-            this.addSystemMessage('✅ 所有聊天记录已清空');
+            // 显示欢迎界面（当没有其他消息时）
+            this.showWelcomeScreen();
         }
     }
 
