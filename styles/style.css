@@ -284,7 +284,7 @@
     --text-primary: #f9fafb;
     --text-secondary: #d1d5db;
     --border-color: #4b5563;
-    --accent-color: #ffffff;
+    --accent-color: #3b82f6;
     --hover-color: #4b5563;
     --shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 }
@@ -339,11 +339,23 @@ body {
 }
 
 .sidebar-header {
-    padding: 8px 16px;
+    padding: 20px 16px 8px 16px;
     display: flex;
-    justify-content: flex-end;
+    justify-content: space-between;
     align-items: center;
     min-width: 260px; /* 保持最小宽度以防止内容挤压 */
+}
+
+.app-title {
+    flex: 1;
+}
+
+.app-title h1 {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--text-primary);
+    letter-spacing: -0.5px;
 }
 
 .sidebar-controls {
@@ -623,7 +635,7 @@ body {
 
 /* 特殊按钮样式 */
 .sidebar-action-btn.theme-toggle.dark-mode {
-    color: var(--accent-color);
+    color: #ffffff;
 }
 
 
@@ -676,7 +688,7 @@ body {
 /* 主题切换特殊样式 */
 .theme-toggle.dark-mode {
     background: var(--bg-secondary);
-    color: var(--accent-color);
+    color: #ffffff;
 }
 
 /* 角色选择模态框 */
