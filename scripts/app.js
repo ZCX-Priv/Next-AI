@@ -49,12 +49,12 @@ class ChatApp {
         this.initializeScrollToBottomButton();
         this.bindEvents();
         this.loadChatHistory();
-        this.loadWelcomeMessage();
+        // 欢迎消息已删除
         
         // 确保初始状态滚动到底部（使用智能滚动）
         setTimeout(() => {
             this.smartScrollToBottom();
-        }, 800); // 等待欢迎消息加载完成
+        }, 100);
     }
 
     // 初始化主题
@@ -1384,6 +1384,9 @@ class ChatApp {
         messageDiv.appendChild(avatar);
         messageDiv.appendChild(messageContent);
         messagesContainer.appendChild(messageDiv);
+        
+        // 隐藏欢迎界面（当有消息时）
+        this.hideWelcomeScreen();
 
         // 根据消息类型选择渲染方式
         if (type === 'user') {
@@ -1956,12 +1959,14 @@ class ChatApp {
         
         this.messages = [];
         document.getElementById('messages').innerHTML = '';
-        this.loadWelcomeMessage();
+        
+        // 显示欢迎界面
+        this.showWelcomeScreen();
         
         // 新建聊天后滚动到底部（使用智能滚动）
         setTimeout(() => {
             this.smartScrollToBottom();
-        }, 800); // 等待欢迎消息加载完成
+        }, 100);
         
         this.renderChatList();
     }
@@ -1982,6 +1987,13 @@ class ChatApp {
         // 清空并重新渲染消息
         const messagesContainer = document.getElementById('messages');
         messagesContainer.innerHTML = '';
+        
+        // 如果有消息，隐藏欢迎界面；如果没有消息，显示欢迎界面
+        if (this.messages.length > 0) {
+            this.hideWelcomeScreen();
+        } else {
+            this.showWelcomeScreen();
+        }
         
         // 渲染所有消息
         this.messages.forEach(msg => {
@@ -2101,29 +2113,7 @@ class ChatApp {
         }
     }
 
-    loadWelcomeMessage() {
-        setTimeout(() => {
-            let welcomeMessage = `# 欢迎使用AI助手！
-
-## 我可以帮助您：
-- 📝 回答各种问题
-- ✍️ 协助写作和编辑  
-- 💻 代码编程支持
-- 📊 数据分析
-- 🎨 创意思考
-- 📚 学习辅导
-
-## 💡 使用提示：
-- 点击顶部的模型选择器可以切换不同的AI提供商和模型
-- 点击设置按钮⚙️可以启用或禁用API提供商
-- 支持**Markdown**语法、\`代码高亮\`和数学公式 $E=mc^2$
-
-请输入您的问题开始对话吧！`;
-
-            // 使用立即显示而不是流式显示，且不显示操作按钮
-            this.addMessage('assistant', welcomeMessage, false, true, null, false);
-        }, 500);
-    }
+    // loadWelcomeMessage() 方法已删除
 
     // 显示设置模态框
     showSettingsModal() {
@@ -3897,7 +3887,23 @@ class ChatApp {
 
     // 获取创建图片状态
     isImageGenerationEnabled() {
-        return localStorage.getItem('imageGenerationEnabled') === 'true';
+        return localStorage.getItem('imageGeneration') === 'true';
+    }
+    
+    // 显示欢迎界面
+    showWelcomeScreen() {
+        const welcomeScreen = document.getElementById('welcomeScreen');
+        if (welcomeScreen) {
+            welcomeScreen.classList.remove('hidden');
+        }
+    }
+    
+    // 隐藏欢迎界面
+    hideWelcomeScreen() {
+        const welcomeScreen = document.getElementById('welcomeScreen');
+        if (welcomeScreen) {
+            welcomeScreen.classList.add('hidden');
+        }
     }
 }
 
