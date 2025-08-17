@@ -2016,7 +2016,8 @@ body {
     }
     
     .sidebar.collapsed {
-        width: 60px;
+        width: 0;
+        overflow: hidden;
     }
     
     .main-content {
@@ -2024,7 +2025,7 @@ body {
     }
     
     .sidebar.collapsed + .main-content {
-        width: calc(100% - 60px);
+        width: 100%;
     }
 }
 
@@ -2034,7 +2035,8 @@ body {
     }
     
     .sidebar.collapsed {
-        width: 60px;
+        width: 0;
+        overflow: hidden;
     }
     
     .main-content {
@@ -2042,7 +2044,7 @@ body {
     }
     
     .sidebar.collapsed + .main-content {
-        width: calc(100% - 60px);
+        width: 100%;
     }
     
     .messages {
@@ -2114,7 +2116,8 @@ body {
     
     .sidebar.collapsed {
         transform: translateX(-100%);
-        width: 100%;
+        width: 0;
+        overflow: hidden;
     }
     
     .main-content {
