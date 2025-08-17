@@ -10,18 +10,32 @@ class MessageRenderer {
         if (typeof marked !== 'undefined') {
             marked.setOptions({
                 highlight: (code, lang) => {
-                    if (typeof hljs !== 'undefined' && lang && hljs.getLanguage(lang)) {
+                    if (typeof hljs !== 'undefined' && lang) {
                         try {
-                            return hljs.highlight(code, { language: lang }).value;
+                            // 检查语言是否支持
+                            if (hljs.getLanguage(lang)) {
+                                return hljs.highlight(code, { language: lang }).value;
+                            } else {
+                                // 尝试自动检测语言
+                                const result = hljs.highlightAuto(code);
+                                return result.value;
+                            }
                         } catch (err) {
-                            console.warn('代码高亮失败:', err);
+                            console.warn('代码高亮失败:', lang, err);
+                            return this.escapeHtml(code);
                         }
                     }
-                    return code;
+                    return this.escapeHtml(code);
                 },
                 breaks: true,
-                gfm: true
+                gfm: true,
+                sanitize: false, // 我们使用DOMPurify进行清理
+                smartLists: true,
+                smartypants: false
             });
+            console.log('Marked初始化完成');
+        } else {
+            console.warn('Marked未加载，Markdown渲染功能不可用');
         }
     }
 
@@ -29,8 +43,13 @@ class MessageRenderer {
     initializeHighlight() {
         if (typeof hljs !== 'undefined') {
             hljs.configure({
-                languages: ['javascript', 'python', 'java', 'cpp', 'html', 'css', 'json', 'xml', 'sql', 'bash']
+                languages: ['javascript', 'python', 'java', 'cpp', 'html', 'css', 'json', 'xml', 'sql', 'bash', 'typescript', 'go', 'rust', 'php', 'ruby', 'swift', 'kotlin', 'csharp', 'markdown'],
+                ignoreUnescapedHTML: true,
+                throwUnescapedHTML: false
             });
+            console.log('Highlight.js初始化完成');
+        } else {
+            console.warn('Highlight.js未加载，代码高亮功能不可用');
         }
     }
 
@@ -43,27 +62,48 @@ class MessageRenderer {
 
     // 渲染数学公式
     renderMath(text) {
-        if (typeof katex === 'undefined') return text;
+        if (typeof katex === 'undefined') {
+            console.warn('KaTeX未加载，跳过数学公式渲染');
+            return text;
+        }
 
-        // 处理行内数学公式 $...$
-        text = text.replace(/\$([^$\n]+?)\$/g, (match, formula) => {
-            try {
-                return katex.renderToString(formula, { displayMode: false });
-            } catch (e) {
-                console.warn('数学公式渲染失败:', e);
-                return match;
-            }
-        });
+        try {
+            // 处理块级数学公式 $$...$$ (必须先处理，避免与行内公式冲突)
+            text = text.replace(/\$\$([\s\S]*?)\$\$/g, (match, formula) => {
+                try {
+                    const cleanFormula = formula.trim();
+                    if (!cleanFormula) return match;
+                    return katex.renderToString(cleanFormula, { 
+                        displayMode: true,
+                        throwOnError: false,
+                        errorColor: '#cc0000',
+                        strict: false
+                    });
+                } catch (e) {
+                    console.warn('块级数学公式渲染失败:', formula, e);
+                    return `<span class="math-error">$$${formula}$$</span>`;
+                }
+            });
 
-        // 处理块级数学公式 $$...$$
-        text = text.replace(/\$\$([^$]+?)\$\$/g, (match, formula) => {
-            try {
-                return katex.renderToString(formula, { displayMode: true });
-            } catch (e) {
-                console.warn('数学公式渲染失败:', e);
-                return match;
-            }
-        });
+            // 处理行内数学公式 $...$
+            text = text.replace(/\$([^$\n]+?)\$/g, (match, formula) => {
+                try {
+                    const cleanFormula = formula.trim();
+                    if (!cleanFormula) return match;
+                    return katex.renderToString(cleanFormula, { 
+                        displayMode: false,
+                        throwOnError: false,
+                        errorColor: '#cc0000',
+                        strict: false
+                    });
+                } catch (e) {
+                    console.warn('行内数学公式渲染失败:', formula, e);
+                    return `<span class="math-error">$${formula}$</span>`;
+                }
+            });
+        } catch (e) {
+            console.error('数学公式渲染过程中发生错误:', e);
+        }
 
         return text;
     }
@@ -205,25 +245,28 @@ class MessageRenderer {
     }
 
     // 处理思考过程标签
+    // 渲染思考内容
+    renderThinkContent(content) {
+        // 对think标签内的内容进行Markdown和数学公式渲染
+        let processedContent = this.renderMath(content);
+        if (typeof marked !== 'undefined') {
+            processedContent = marked.parse(processedContent);
+        }
+        
+        return `
+            <div class="think-container">
+                <details class="think-details">
+                    <summary class="think-summary">思考过程</summary>
+                    <div class="think-content">${processedContent}</div>
+                </details>
+            </div>
+        `;
+    }
+    
+    // 保持向后兼容的processThinkTags方法
     processThinkTags(text) {
-        // 将<think>...</think>标签转换为可折叠的思考过程
-        return text.replace(/<think>([\s\S]*?)<\/think>/g, (match, content) => {
-            const trimmedContent = content.trim();
-            
-            // 对think标签内的内容进行Markdown渲染
-            let processedContent = this.renderMath(trimmedContent);
-            if (typeof marked !== 'undefined') {
-                processedContent = marked.parse(processedContent);
-            }
-            
-            return `
-                <div class="think-container">
-                    <details class="think-details">
-                        <summary class="think-summary">思考过程</summary>
-                        <div class="think-content">${processedContent}</div>
-                    </details>
-                </div>
-            `;
+        return text.replace(/<(think|thinking)>([\s\S]*?)<\/(think|thinking)>/g, (match, openTag, content) => {
+            return this.renderThinkContent(content.trim());
         });
     }
 
@@ -231,14 +274,14 @@ class MessageRenderer {
     renderMessage(text, isStreaming = false) {
         let processedText = text;
         
-        // 1. 先分离think标签和普通内容
+        // 1. 先处理think标签和thinking标签
         const thinkTags = [];
         let thinkIndex = 0;
         
-        // 提取think标签，用占位符替换
-        processedText = processedText.replace(/<think>([\s\S]*?)<\/think>/g, (match, content) => {
+        // 提取think和thinking标签，用占位符替换
+        processedText = processedText.replace(/<(think|thinking)>([\s\S]*?)<\/(think|thinking)>/g, (match, openTag, content, closeTag) => {
             const placeholder = `__THINK_PLACEHOLDER_${thinkIndex}__`;
-            thinkTags[thinkIndex] = match;
+            thinkTags[thinkIndex] = { match, content: content.trim(), tag: openTag };
             thinkIndex++;
             return placeholder;
         });
@@ -252,9 +295,9 @@ class MessageRenderer {
         }
         
         // 4. 恢复think标签并处理
-        thinkTags.forEach((thinkTag, index) => {
+        thinkTags.forEach((thinkData, index) => {
             const placeholder = `__THINK_PLACEHOLDER_${index}__`;
-            const processedThink = this.processThinkTags(thinkTag);
+            const processedThink = this.renderThinkContent(thinkData.content);
             processedText = processedText.replace(placeholder, processedThink);
         });
         
@@ -263,8 +306,12 @@ class MessageRenderer {
             processedText = DOMPurify.sanitize(processedText, {
                 ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 'code', 'pre', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 
                               'ul', 'ol', 'li', 'blockquote', 'a', 'span', 'div', 'table', 'thead', 'tbody', 'tr', 'td', 'th',
-                              'details', 'summary'],
-                ALLOWED_ATTR: ['href', 'class', 'id', 'style', 'data-highlighted'],
+                              'details', 'summary', 'annotation', 'semantics', 'mtext', 'mn', 'mo', 'mi', 'mspace', 
+                              'mover', 'munder', 'munderover', 'msup', 'msub', 'msubsup', 'mfrac', 'mroot', 'msqrt',
+                              'mtable', 'mtr', 'mtd', 'mlabeledtr', 'mrow', 'menclose', 'mstyle', 'mpadded', 'mphantom',
+                              'mglyph'],
+                ALLOWED_ATTR: ['href', 'class', 'id', 'style', 'data-highlighted', 'aria-hidden', 'title', 'mathvariant',
+                              'mathsize', 'mathcolor', 'mathbackground', 'displaystyle', 'scriptlevel', 'dir'],
                 ALLOW_DATA_ATTR: false
             });
         }

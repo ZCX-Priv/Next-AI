@@ -103,7 +103,8 @@ const TEXT_API_CONFIG = {
             'qwen/qwen3-235b-a22b:free': '通义千问 3.0',
             'z-ai/glm-4.5-air:free': 'GLM-4.5 Air',
             'moonshotai/kimi-k2:free': 'Kimi K2',
-            'tencent/hunyuan-a13b-instruct:free': '混元 A13B'
+            'tencent/hunyuan-a13b-instruct:free': '混元 A13B',
+            'openai/gpt-oss-20b:free': 'GPT-OSS'
         },
         headers: {
             'Content-Type': 'application/json',
@@ -122,18 +123,44 @@ const TEXT_API_CONFIG = {
         models: {
             'openai': 'OpenAI',
             'openai-fast': 'OpenAI Fast',
-            'grok': 'Grok-3',
-            'glm': 'GLM-4',
+            'gpt-5-nano': 'GPT-5 Nano',
+            'openai-reasoning': 'GPT o3',
+            'gemini': 'Gemini flash',
             'evil': 'Evil',
             'mistral': 'Mistral AI',
             'qwen': '通义千问 mini',
-            'deepseek-reasoning': 'DeepSeek R1'
+            'deepseek-reasoning': 'DeepSeek R1 flash'
         },
         headers: {
             'Content-Type': 'application/json',
             'Authorization': 'Bearer {API_KEY}',
             "stream": true,
             'X-Title': 'NextAI'
+        }
+    },
+
+    // Chat Anywhere配置
+    chatanywhere: {
+        name: 'Chat Anywhere',
+        enabled: true,
+        baseURL: 'https://api.chatanywhere.tech/v1/chat/completions',
+        apiKey: 'sk-tPKcHK1b3gkjJ0873tB7btBlIbbW2nnaEb54L8YNS6KmbxB0', // 请在此处填入您的API密钥
+        models: {
+            'gpt-3.5-turbo': 'GPT-3.5 Turbo',
+            'gpt-4o': 'GPT-4o',
+            'gpt-4o-mini': 'GPT-4o Mini',
+            'gpt-4.1': 'GPT-4.1',
+            'gpt-4.1-mini': 'GPT-4.1 Mini',
+            'gpt-4.1-nano': 'GPT-4.1 Nano',
+            'gpt-5': 'GPT-5',
+            'gpt-5-mini': 'GPT-5 Mini',
+            'gpt-5-nano': 'GPT-5 Nano',
+            'deepseek-v3': 'DeepSeek V3 Lite',
+            'deepseek-r1': 'DeepSeek R1 Lite'
+        },
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer {API_KEY}'
         }
     },
 
@@ -184,7 +211,7 @@ const IMAGE_API_CONFIG = {
         apiKey: '38DJtIV7dXrRdYNl', 
         method: 'GET', // Pollinations使用GET方法
         models: {
-            'turbo': '快速生成',
+            'turbo': 'Turbo',
             'flux': 'Flux 通用版',
             'flux-3d': 'Flux 3D风格',
             'flux-pro': 'Flux 专业版',

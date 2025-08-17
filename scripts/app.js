@@ -486,12 +486,12 @@ class ChatApp {
         } else {
             const providerConfig = this.configManager.getCurrentProvider();
             const modelAlias = this.configManager.getModelAlias(provider, model);
-            this.addSystemMessage(`已切换到 ${providerConfig.name} - ${modelAlias}`);
+            this.addSystemMessage(`已切换到 ${modelAlias}`);
             
             // 如果当前聊天是"新建聊天"，更新标题为模型名称
             const currentChat = this.chatHistoryManager.getCurrentChat();
             if (currentChat && currentChat.title === '新建聊天') {
-                const newTitle = `${providerConfig.name} - ${modelAlias}`;
+                const newTitle = modelAlias;
                 this.chatHistoryManager.renameChat(currentChat.id, newTitle);
                 this.renderChatList();
             }
@@ -509,7 +509,7 @@ class ChatApp {
         if (currentProvider && currentModel) {
             const providerConfig = this.configManager.getCurrentProvider();
             const modelAlias = this.configManager.getCurrentModelAlias();
-            modelBtnSpan.textContent = `${providerConfig.name} - ${modelAlias}`;
+            modelBtnSpan.textContent = modelAlias;
         } else {
             modelBtnSpan.textContent = '选择模型';
         }
@@ -948,6 +948,7 @@ class ChatApp {
                             if (delta?.reasoning) {
                                 isDeepSeekR1 = true;
                                 reasoningContent += delta.reasoning;
+                                console.log('收到思考过程内容:', delta.reasoning);
                                 
                                 // 首次收到内容时移除思考指示器
                                 if (!hasReceivedContent) {
@@ -960,6 +961,22 @@ class ChatApp {
                             // 处理常规内容
                             if (delta?.content) {
                                 fullResponse += delta.content;
+                                console.log('收到回答内容:', delta.content);
+                                
+                                // 检查是否包含<think>标签（用于pollination等API）
+                                const thinkMatch = fullResponse.match(/<think>([\s\S]*?)<\/think>/);
+                                if (thinkMatch && !isDeepSeekR1) {
+                                    // 提取思考内容
+                                    const thinkContent = thinkMatch[1];
+                                    if (thinkContent && thinkContent !== reasoningContent) {
+                                        isDeepSeekR1 = true; // 标记为有思考过程
+                                        reasoningContent = thinkContent;
+                                        console.log('检测到<think>标签思考过程:', thinkContent);
+                                        
+                                        // 从fullResponse中移除<think>标签内容
+                                        fullResponse = fullResponse.replace(/<think>[\s\S]*?<\/think>\s*/, '');
+                                    }
+                                }
                                 
                                 // 首次收到内容时移除思考指示器
                                 if (!hasReceivedContent) {
@@ -1012,12 +1029,14 @@ class ChatApp {
             
             // 最终更新：确保所有内容都被渲染
             if (isDeepSeekR1 && reasoningContent) {
+                console.log('完整思考过程:', reasoningContent);
                 this.updateThinkingProcess(messageDiv, reasoningContent);
                 // 思考过程完成，标记为已完成并自动折叠
                 this.completeThinkingProcess(messageDiv);
             }
             
             if (fullResponse) {
+                console.log('完整回答内容:', fullResponse);
                 if (isDeepSeekR1) {
                     this.updateFinalAnswer(messageDiv, fullResponse);
                 } else {
@@ -1038,6 +1057,8 @@ class ChatApp {
             const completeContent = isDeepSeekR1 && reasoningContent ? 
                 `<thinking>\n${reasoningContent}\n</thinking>\n\n${fullResponse}` : 
                 fullResponse;
+            
+            console.log('保存的完整内容:', completeContent);
                 
             this.messages.push({ 
                 type: 'assistant', 
@@ -1224,10 +1245,10 @@ class ChatApp {
 
     // 渲染包含思考过程的消息（用于历史消息加载）
     renderMessageWithThinking(messageDiv, content) {
-        // 解析思考过程和答案内容
-        const thinkingMatch = content.match(/<thinking>([\s\S]*?)<\/thinking>/);
+        // 解析思考过程和答案内容 - 支持<thinking>和<think>标签
+        const thinkingMatch = content.match(/<thinking>([\s\S]*?)<\/thinking>/) || content.match(/<think>([\s\S]*?)<\/think>/);
         const thinkingContent = thinkingMatch ? thinkingMatch[1].trim() : '';
-        const answerContent = content.replace(/<thinking>[\s\S]*?<\/thinking>\s*/, '').trim();
+        const answerContent = content.replace(/<thinking>[\s\S]*?<\/thinking>\s*/, '').replace(/<think>[\s\S]*?<\/think>\s*/, '').trim();
 
         if (thinkingContent) {
             // 创建思考过程显示
@@ -1414,8 +1435,8 @@ class ChatApp {
             );
         } else {
             // AI消息立即渲染
-            // 检查是否包含思考过程
-            if (type === 'assistant' && content.includes('<thinking>')) {
+            // 检查是否包含思考过程 - 支持<thinking>和<think>标签
+            if (type === 'assistant' && (content.includes('<thinking>') || content.includes('<think>'))) {
                 this.renderMessageWithThinking(messageDiv, content);
             } else {
                 this.messageRenderer.renderInstant(messageContent, content);
@@ -2701,7 +2722,7 @@ class ChatApp {
             const modelBtnSpan = document.querySelector('#modelBtn span');
             if (currentProvider && modelBtnSpan) {
                 const currentModelAlias = this.configManager.getCurrentModelAlias() || this.currentModel;
-                modelBtnSpan.textContent = `${currentProvider.name} - ${currentModelAlias}`;
+                modelBtnSpan.textContent = currentModelAlias;
             }
 
             document.body.removeChild(modal);
