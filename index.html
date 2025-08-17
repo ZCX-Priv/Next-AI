@@ -30,30 +30,33 @@
         <!-- 侧边栏 -->
         <div class="sidebar" id="sidebar">
             <div class="sidebar-header">
-                <h2>历史对话</h2>
                 <div class="sidebar-controls">
-                    <button class="new-chat-btn">
-                        <i class="fas fa-plus"></i>
-                    </button>
                     <button class="sidebar-toggle-btn" id="sidebarToggle">
                         <i class="fas fa-chevron-left"></i>
                     </button>
                 </div>
             </div>
             
-            <div class="chat-history">
-                <div class="chat-item active">
-                    <i class="fas fa-comment"></i>
-                    <span>新建聊天</span>
-                </div>
+            <div class="sidebar-content">
+                <button class="new-chat-btn">
+                    <i class="fas fa-plus"></i>
+                    <span>新对话</span>
+                </button>
+                
+                <button class="more-btn" id="roleSelector" title="选择角色">
+                    <i class="fas fa-user-circle"></i>
+                    <span>角色中心</span>
+                </button>
             </div>
             
             <div class="sidebar-footer">
-                <div class="clearall">
-                    <div class="avatar">
-                        <i class="fas fa-trash"></i>
-                    </div>
-                    <span>清空列表</span>
+                <div class="recent-chats-header">
+                    <span class="recent-title">近期对话</span>
+                    <a href="#" class="view-all">全部</a>
+                </div>
+                
+                <div class="chat-history">
+                    <!-- 聊天历史将在这里动态加载 -->
                 </div>
                 
                 <!-- 功能按钮区域 -->
@@ -62,14 +65,9 @@
                         <i class="fas fa-sun"></i>
                         <span id="themeText">白昼模式</span>
                     </button>
-                    <button class="sidebar-action-btn role-selector" id="roleSelector" title="选择角色">
-                        <i class="fas fa-user-circle"></i>
-                        <span>角色中心</span>
-                    </button>
                     <button class="sidebar-action-btn settings-toggle" id="settingsToggle" title="设置">
                         <i class="fas fa-cog"></i>
                         <span>设置</span>
-
                     </button>
                 </div>
             </div>
