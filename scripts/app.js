@@ -958,6 +958,20 @@ class ChatApp {
                                 }
                             }
                             
+                            // 检查是否有reasoning_content字段 (DeepSeek-R1新格式)
+                            if (delta?.reasoning_content) {
+                                isDeepSeekR1 = true;
+                                reasoningContent += delta.reasoning_content;
+                                console.log('收到reasoning_content思考过程内容:', delta.reasoning_content);
+                                
+                                // 首次收到内容时移除思考指示器
+                                if (!hasReceivedContent) {
+                                    this.hideThinkingIndicator(messageContent);
+                                    hasReceivedContent = true;
+                                    this.hasReceivedResponse = true; // 标记已收到响应
+                                }
+                            }
+                            
                             // 处理常规内容
                             if (delta?.content) {
                                 fullResponse += delta.content;
