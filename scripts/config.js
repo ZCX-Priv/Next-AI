@@ -196,7 +196,7 @@ const TEXT_API_CONFIG = {
     modelscope: {
         name: 'ModelScope',
         enabled: false,
-        baseURL: 'https://api-inference.modelscope.cn/v1',
+        baseURL: 'https://api-inference.modelscope.cn/v1/chat/completions',
         apiKey: 'ms-1fc29858-708b-43ff-90a1-26a05483c77b', // 请在此处填入您的API密钥
         defaultModel: 'deepseek-ai/DeepSeek-V3.1', // 默认模型
         models: {
@@ -403,54 +403,100 @@ class ConfigManager {
     initializeConfig() {
         const enabledProviders = this.getProviders();
         
-        // 如果当前提供商为null或未启用，自动检测第一个启用的提供商
-        if (!this.config.currentProvider || !enabledProviders.find(p => p.key === this.config.currentProvider)) {
+        // 只有在没有设置提供商或提供商确实不存在时才自动检测
+        if (!this.config.currentProvider) {
             const firstEnabled = this.getFirstEnabledProviderAndModel();
             if (firstEnabled) {
                 this.config.currentProvider = firstEnabled.provider;
                 this.config.currentModel = firstEnabled.model;
                 this.saveConfig();
-            } else {
-                // 没有启用的提供商，重置为null
-                this.config.currentProvider = null;
-                this.config.currentModel = null;
+            }
+        } else {
+            // 检查当前提供商是否存在于配置中（不检查是否启用）
+            const providerExists = TEXT_API_CONFIG.hasOwnProperty(this.config.currentProvider);
+            if (!providerExists) {
+                // 提供商不存在，才重置
+                const firstEnabled = this.getFirstEnabledProviderAndModel();
+                if (firstEnabled) {
+                    this.config.currentProvider = firstEnabled.provider;
+                    this.config.currentModel = firstEnabled.model;
+                    this.saveConfig();
+                } else {
+                    this.config.currentProvider = null;
+                    this.config.currentModel = null;
+                }
             }
         }
         
-        // 如果当前模型为null或在当前提供商中不存在，使用该提供商的第一个模型
-        const currentProvider = this.getCurrentProvider();
-        if (currentProvider && (!this.config.currentModel || !currentProvider.models.hasOwnProperty(this.config.currentModel))) {
-            const modelKeys = Object.keys(currentProvider.models || {});
-            if (modelKeys.length > 0) {
-                this.config.currentModel = modelKeys[0];
-                this.saveConfig();
+        // 只有在没有设置模型或模型确实不存在时才重置
+        if (!this.config.currentModel && this.config.currentProvider) {
+            const currentProvider = this.getCurrentProvider();
+            if (currentProvider) {
+                const defaultModel = this.getProviderDefaultModel(this.config.currentProvider);
+                if (defaultModel) {
+                    this.config.currentModel = defaultModel;
+                    this.saveConfig();
+                }
+            }
+        } else if (this.config.currentModel && this.config.currentProvider) {
+            // 检查模型是否存在于当前提供商中
+            const currentProvider = this.getCurrentProvider();
+            if (currentProvider && !currentProvider.models.hasOwnProperty(this.config.currentModel)) {
+                // 模型不存在，使用默认模型
+                const defaultModel = this.getProviderDefaultModel(this.config.currentProvider);
+                if (defaultModel) {
+                    this.config.currentModel = defaultModel;
+                    this.saveConfig();
+                }
             }
         }
 
-        // 初始化图片API配置
+        // 初始化图片API配置 - 同样的逻辑
         const enabledImageProviders = this.getImageProviders();
         
-        // 如果当前图片提供商为null或未启用，自动检测第一个启用的图片提供商
-        if (!this.config.currentImageProvider || !enabledImageProviders.find(p => p.key === this.config.currentImageProvider)) {
+        // 只有在没有设置图片提供商时才自动检测
+        if (!this.config.currentImageProvider) {
             const firstEnabledImage = this.getFirstEnabledImageProviderAndModel();
             if (firstEnabledImage) {
                 this.config.currentImageProvider = firstEnabledImage.provider;
                 this.config.currentImageModel = firstEnabledImage.model;
                 this.saveConfig();
-            } else {
-                // 没有启用的图片提供商，重置为null
-                this.config.currentImageProvider = null;
-                this.config.currentImageModel = null;
+            }
+        } else {
+            // 检查当前图片提供商是否存在于配置中
+            const providerExists = IMAGE_API_CONFIG.hasOwnProperty(this.config.currentImageProvider);
+            if (!providerExists) {
+                const firstEnabledImage = this.getFirstEnabledImageProviderAndModel();
+                if (firstEnabledImage) {
+                    this.config.currentImageProvider = firstEnabledImage.provider;
+                    this.config.currentImageModel = firstEnabledImage.model;
+                    this.saveConfig();
+                } else {
+                    this.config.currentImageProvider = null;
+                    this.config.currentImageModel = null;
+                }
             }
         }
         
-        // 如果当前图片模型为null或在当前图片提供商中不存在，使用该提供商的第一个模型
-        const currentImageProvider = this.getCurrentImageProvider();
-        if (currentImageProvider && (!this.config.currentImageModel || !currentImageProvider.models.hasOwnProperty(this.config.currentImageModel))) {
-            const modelKeys = Object.keys(currentImageProvider.models || {});
-            if (modelKeys.length > 0) {
-                this.config.currentImageModel = modelKeys[0];
-                this.saveConfig();
+        // 只有在没有设置图片模型或模型确实不存在时才重置
+        if (!this.config.currentImageModel && this.config.currentImageProvider) {
+            const currentImageProvider = this.getCurrentImageProvider();
+            if (currentImageProvider) {
+                const defaultModel = this.getImageProviderDefaultModel(this.config.currentImageProvider);
+                if (defaultModel) {
+                    this.config.currentImageModel = defaultModel;
+                    this.saveConfig();
+                }
+            }
+        } else if (this.config.currentImageModel && this.config.currentImageProvider) {
+            // 检查图片模型是否存在于当前提供商中
+            const currentImageProvider = this.getCurrentImageProvider();
+            if (currentImageProvider && !currentImageProvider.models.hasOwnProperty(this.config.currentImageModel)) {
+                const defaultModel = this.getImageProviderDefaultModel(this.config.currentImageProvider);
+                if (defaultModel) {
+                    this.config.currentImageModel = defaultModel;
+                    this.saveConfig();
+                }
             }
         }
     }
@@ -845,6 +891,28 @@ class ConfigManager {
                 name: IMAGE_API_CONFIG[key].name,
                 models: Object.keys(IMAGE_API_CONFIG[key].models || {})
             }));
+    }
+
+    // 检查文本提供商是否启用
+    isProviderEnabled(provider) {
+        return TEXT_API_CONFIG[provider]?.enabled || false;
+    }
+
+    // 检查图像提供商是否启用
+    isImageProviderEnabled(provider) {
+        return IMAGE_API_CONFIG[provider]?.enabled || false;
+    }
+
+    // 检查文本模型是否在指定提供商中可用
+    isModelAvailable(provider, model) {
+        const providerConfig = TEXT_API_CONFIG[provider];
+        return providerConfig && providerConfig.models && providerConfig.models.hasOwnProperty(model);
+    }
+
+    // 检查图像模型是否在指定提供商中可用
+    isImageModelAvailable(provider, model) {
+        const providerConfig = IMAGE_API_CONFIG[provider];
+        return providerConfig && providerConfig.models && providerConfig.models.hasOwnProperty(model);
     }
 
     // 验证配置

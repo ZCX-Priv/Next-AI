@@ -51,6 +51,22 @@ class ChatApp {
         this.initializeTheme();
         this.initializeScenario();
         this.initializeSidebarState();
+        
+        // 使用用户保存的配置初始化当前模型和提供商
+        this.currentProvider = this.configManager.getCurrentProvider()?.key || this.configManager.config.currentProvider;
+        this.currentModel = this.configManager.config.currentModel;
+        
+        // 如果没有有效的配置，才使用默认配置
+        if (!this.currentProvider || !this.currentModel || 
+            !this.configManager.isProviderEnabled(this.currentProvider) ||
+            !this.configManager.isModelAvailable(this.currentProvider, this.currentModel)) {
+            const result = this.configManager.getFirstEnabledProviderAndModel();
+            if (result) {
+                this.currentProvider = result.provider;
+                this.currentModel = result.model;
+            }
+        }
+        
         this.initializeModelOptions();
         this.updateModelDisplay();
         this.initializeScrollToBottomButton();
@@ -205,8 +221,8 @@ class ChatApp {
                 const modelAlias = this.configManager.getModelAlias(provider.key, model);
                 option.textContent = modelAlias;
                 
-                // 检查是否为当前选中的图像模型
-                if (model === this.configManager.config.currentImageModel && provider.key === this.configManager.config.currentImageProvider) {
+                // 检查是否为当前选中的文本模型
+                if (model === this.configManager.config.currentModel && provider.key === this.configManager.config.currentProvider) {
                     option.classList.add('active');
                 }
                 
@@ -479,7 +495,12 @@ class ChatApp {
         }
     }
 
-    selectModel(model, provider) {
+    selectModel(model, provider, showNotification = true) {
+        // 防止重复调用 - 检查是否已经是当前选中的模型
+        if (this.currentModel === model && this.currentProvider === provider) {
+            return;
+        }
+        
         // 根据当前模式设置不同的提供商和模型
         if (this.isImageMode) {
             // 图像模式：设置图像提供商和模型
@@ -507,33 +528,36 @@ class ChatApp {
             selectedOption.classList.add('active');
         }
         
-        // 检查API配置
-        let validation;
-        if (this.isImageMode) {
-            // 图像模式的验证逻辑
-            const imageProviders = this.configManager.getAllImageProviders();
-            const currentProvider = imageProviders[provider];
-            validation = {
-                valid: currentProvider && currentProvider.enabled,
-                error: currentProvider ? (currentProvider.enabled ? '' : '提供商未启用') : '提供商不存在'
-            };
-        } else {
-            validation = this.configManager.validateConfig(provider);
-        }
-        
-        if (!validation.valid) {
-            this.addSystemMessage(`${validation.error}，请在设置中配置API密钥`);
-        } else {
-            const modelAlias = this.configManager.getModelAlias(provider, model);
-            const modeText = this.isImageMode ? '图像生成模型' : '对话模型';
-            this.addSystemMessage(`已切换到 ${modelAlias} (${modeText})`);
+        // 只在需要显示通知时才检查API配置并显示消息
+        if (showNotification) {
+            // 检查API配置
+            let validation;
+            if (this.isImageMode) {
+                // 图像模式的验证逻辑
+                const imageProviders = this.configManager.getAllImageProviders();
+                const currentProvider = imageProviders[provider];
+                validation = {
+                    valid: currentProvider && currentProvider.enabled,
+                    error: currentProvider ? (currentProvider.enabled ? '' : '提供商未启用') : '提供商不存在'
+                };
+            } else {
+                validation = this.configManager.validateConfig(provider);
+            }
             
-            // 如果当前聊天是"新建聊天"，更新标题为模型名称
-            const currentChat = this.chatHistoryManager.getCurrentChat();
-            if (currentChat && currentChat.title === '新建聊天') {
-                const newTitle = modelAlias;
-                this.chatHistoryManager.renameChat(currentChat.id, newTitle);
-                this.renderChatList();
+            if (!validation.valid) {
+                this.addSystemMessage(`${validation.error}，请在设置中配置API密钥`);
+            } else {
+                const modelAlias = this.configManager.getModelAlias(provider, model);
+                const modeText = this.isImageMode ? '图像生成模型' : '对话模型';
+                this.addSystemMessage(`已切换到 ${modelAlias} (${modeText})`);
+                
+                // 如果当前聊天是"新建聊天"，更新标题为模型名称
+                const currentChat = this.chatHistoryManager.getCurrentChat();
+                if (currentChat && currentChat.title === '新建聊天') {
+                    const newTitle = modelAlias;
+                    this.chatHistoryManager.renameChat(currentChat.id, newTitle);
+                    this.renderChatList();
+                }
             }
         }
     }
@@ -1657,6 +1681,29 @@ class ChatApp {
 
 
     addSystemMessage(content) {
+        // 防重复显示机制 - 检查是否在短时间内显示了相同的消息
+        const now = Date.now();
+        const duplicateThreshold = 2000; // 2秒内不显示重复消息
+        
+        if (!this.lastNotifications) {
+            this.lastNotifications = new Map();
+        }
+        
+        // 清理过期的通知记录
+        for (const [msg, timestamp] of this.lastNotifications.entries()) {
+            if (now - timestamp > duplicateThreshold) {
+                this.lastNotifications.delete(msg);
+            }
+        }
+        
+        // 检查是否为重复消息
+        if (this.lastNotifications.has(content)) {
+            return; // 跳过重复消息
+        }
+        
+        // 记录当前消息
+        this.lastNotifications.set(content, now);
+        
         // 创建通知容器（如果不存在）
         let notificationContainer = document.getElementById('notification-container');
         if (!notificationContainer) {
@@ -2810,6 +2857,12 @@ class ChatApp {
         
         // 移除旧的事件监听器，重新添加
         document.querySelectorAll('.model-option').forEach(option => {
+            // 移除旧的事件监听器
+            option.replaceWith(option.cloneNode(true));
+        });
+        
+        // 重新绑定事件监听器
+        document.querySelectorAll('.model-option').forEach(option => {
             option.addEventListener('click', (e) => {
                 const model = e.target.dataset.model;
                 const provider = e.target.dataset.provider;
@@ -2897,17 +2950,31 @@ class ChatApp {
         this.savedTextModel = this.currentModel;
         this.savedTextProvider = this.currentProvider;
         
-        // 获取第一个可用的图像模型
-        const result = this.configManager.getFirstEnabledImageProviderAndModel();
-        if (result) {
-            this.currentModel = result.model;
-            this.currentProvider = result.provider;
-            this.isImageMode = true; // 标记为图像模式
-            
-            // 设置ConfigManager中的图像提供商和模型
-            this.configManager.setImageProvider(result.provider);
-            this.configManager.setImageModel(result.model);
+        // 优先使用用户已保存的图像模型配置
+        const savedImageProvider = this.configManager.getImageProvider();
+        const savedImageModel = this.configManager.getImageModel();
+        
+        // 检查保存的配置是否有效
+        if (savedImageProvider && savedImageModel && 
+            this.configManager.isImageProviderEnabled(savedImageProvider) &&
+            this.configManager.isImageModelAvailable(savedImageProvider, savedImageModel)) {
+            // 使用保存的配置
+            this.currentModel = savedImageModel;
+            this.currentProvider = savedImageProvider;
+        } else {
+            // 如果保存的配置无效，则获取第一个可用的图像模型
+            const result = this.configManager.getFirstEnabledImageProviderAndModel();
+            if (result) {
+                this.currentModel = result.model;
+                this.currentProvider = result.provider;
+                
+                // 更新ConfigManager中的图像提供商和模型
+                this.configManager.setImageProvider(result.provider);
+                this.configManager.setImageModel(result.model);
+            }
         }
+        
+        this.isImageMode = true; // 标记为图像模式
         
         // 重新初始化模型选项（显示图像模型）
         this.initializeImageModelOptions();
@@ -2918,16 +2985,49 @@ class ChatApp {
     loadTextModels() {
         this.isImageMode = false; // 标记为文本模式
         
-        // 恢复之前的文本模型，如果没有则使用默认
+        // 优先恢复之前的文本模型
         if (this.savedTextModel && this.savedTextProvider) {
-            this.currentModel = this.savedTextModel;
-            this.currentProvider = this.savedTextProvider;
+            // 检查保存的文本模型配置是否仍然有效
+            if (this.configManager.isProviderEnabled(this.savedTextProvider) &&
+                this.configManager.isModelAvailable(this.savedTextProvider, this.savedTextModel)) {
+                this.currentModel = this.savedTextModel;
+                this.currentProvider = this.savedTextProvider;
+            } else {
+                // 如果保存的配置无效，使用用户当前配置或默认配置
+                const currentProvider = this.configManager.getCurrentProvider();
+                const currentModel = this.configManager.getCurrentModel();
+                
+                if (currentProvider && currentModel &&
+                    this.configManager.isProviderEnabled(currentProvider) &&
+                    this.configManager.isModelAvailable(currentProvider, currentModel)) {
+                    this.currentModel = currentModel;
+                    this.currentProvider = currentProvider;
+                } else {
+                    // 最后才使用第一个可用的文本模型
+                    const result = this.configManager.getFirstEnabledProviderAndModel();
+                    if (result) {
+                        this.currentModel = result.model;
+                        this.currentProvider = result.provider;
+                    }
+                }
+            }
         } else {
-            // 获取第一个可用的文本模型
-            const result = this.configManager.getFirstEnabledProviderAndModel();
-            if (result) {
-                this.currentModel = result.model;
-                this.currentProvider = result.provider;
+            // 如果没有保存的文本模型，优先使用用户当前配置
+            const currentProvider = this.configManager.getCurrentProvider();
+            const currentModel = this.configManager.getCurrentModel();
+            
+            if (currentProvider && currentModel &&
+                this.configManager.isProviderEnabled(currentProvider) &&
+                this.configManager.isModelAvailable(currentProvider, currentModel)) {
+                this.currentModel = currentModel;
+                this.currentProvider = currentProvider;
+            } else {
+                // 最后才使用第一个可用的文本模型
+                const result = this.configManager.getFirstEnabledProviderAndModel();
+                if (result) {
+                    this.currentModel = result.model;
+                    this.currentProvider = result.provider;
+                }
             }
         }
         
