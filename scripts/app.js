@@ -14,6 +14,12 @@ class ChatApp {
         this.isDarkMode = this.getStoredTheme() === 'dark';
         this.selectedRoleId = null; // 角色选择模态框中选中的角色ID
         
+        // 使用场景相关
+        this.currentScenario = this.getStoredScenario() || 'chat'; // 当前使用场景：'chat' 或 'image'
+        this.isImageMode = false; // 标记当前是否为图像生成模式
+        this.savedTextModel = null; // 保存的文本模型
+        this.savedTextProvider = null; // 保存的文本提供商
+        
         // 性能优化相关属性
         this.lastThinkingContent = {}; // 缓存思考过程内容，避免重复渲染
         this.scrollThrottleTimer = null; // 滚动节流定时器
@@ -43,6 +49,7 @@ class ChatApp {
 
     init() {
         this.initializeTheme();
+        this.initializeScenario();
         this.initializeSidebarState();
         this.initializeModelOptions();
         this.updateModelDisplay();
@@ -198,7 +205,8 @@ class ChatApp {
                 const modelAlias = this.configManager.getModelAlias(provider.key, model);
                 option.textContent = modelAlias;
                 
-                if (model === this.currentModel) {
+                // 检查是否为当前选中的图像模型
+                if (model === this.configManager.config.currentImageModel && provider.key === this.configManager.config.currentImageProvider) {
                     option.classList.add('active');
                 }
                 
@@ -207,6 +215,9 @@ class ChatApp {
             
             modelOptions.appendChild(providerGroup);
         });
+        
+        // 重新绑定模型选择事件
+        this.rebindModelEvents();
     }
 
     // 初始化回到底部按钮
@@ -331,6 +342,14 @@ class ChatApp {
         if (themeToggle) {
             themeToggle.addEventListener('click', () => {
                 this.toggleTheme();
+            });
+        }
+
+        // 使用场景切换按钮
+        const scenarioToggle = document.getElementById('scenarioToggle');
+        if (scenarioToggle) {
+            scenarioToggle.addEventListener('click', () => {
+                this.toggleScenario();
             });
         }
 
@@ -461,11 +480,20 @@ class ChatApp {
     }
 
     selectModel(model, provider) {
-        // 设置提供商和模型
-        this.configManager.setProvider(provider);
-        this.configManager.setModel(model);
+        // 根据当前模式设置不同的提供商和模型
+        if (this.isImageMode) {
+            // 图像模式：设置图像提供商和模型
+            this.configManager.setImageProvider(provider);
+            this.configManager.setImageModel(model);
+        } else {
+            // 文本模式：设置文本提供商和模型
+            this.configManager.setProvider(provider);
+            this.configManager.setModel(model);
+        }
+        
         this.currentModel = model;
-        this.currentModelAlias = this.configManager.getCurrentModelAlias() || model;
+        this.currentProvider = provider;
+        this.currentModelAlias = this.configManager.getModelAlias(provider, model) || model;
         
         // 更新UI显示
         this.updateModelDisplay();
@@ -480,13 +508,25 @@ class ChatApp {
         }
         
         // 检查API配置
-        const validation = this.configManager.validateConfig(provider);
+        let validation;
+        if (this.isImageMode) {
+            // 图像模式的验证逻辑
+            const imageProviders = this.configManager.getAllImageProviders();
+            const currentProvider = imageProviders[provider];
+            validation = {
+                valid: currentProvider && currentProvider.enabled,
+                error: currentProvider ? (currentProvider.enabled ? '' : '提供商未启用') : '提供商不存在'
+            };
+        } else {
+            validation = this.configManager.validateConfig(provider);
+        }
+        
         if (!validation.valid) {
             this.addSystemMessage(`${validation.error}，请在设置中配置API密钥`);
         } else {
-            const providerConfig = this.configManager.getCurrentProvider();
             const modelAlias = this.configManager.getModelAlias(provider, model);
-            this.addSystemMessage(`已切换到 ${modelAlias}`);
+            const modeText = this.isImageMode ? '图像生成模型' : '对话模型';
+            this.addSystemMessage(`已切换到 ${modelAlias} (${modeText})`);
             
             // 如果当前聊天是"新建聊天"，更新标题为模型名称
             const currentChat = this.chatHistoryManager.getCurrentChat();
@@ -624,6 +664,12 @@ class ChatApp {
 
     async callAI(userMessage) {
         const startTime = Date.now();
+        
+        // 根据模式选择不同的处理方式
+        if (this.isImageMode) {
+            return await this.callImageAPI(userMessage, startTime);
+        }
+        
         const config = this.configManager.getConfig();
         const provider = config.provider;
         
@@ -2785,6 +2831,231 @@ class ChatApp {
         this.updateThemeDisplay();
         
         this.addSystemMessage(`已手动切换到${this.isDarkMode ? '夜间' : '白昼'}模式`);
+    }
+
+    // 初始化使用场景
+    initializeScenario() {
+        this.updateScenarioDisplay();
+        
+        // 根据当前场景设置模式
+        if (this.currentScenario === 'image') {
+            this.loadImageModels();
+        } else {
+            this.isImageMode = false;
+        }
+    }
+
+    // 切换使用场景
+    toggleScenario() {
+        this.currentScenario = this.currentScenario === 'chat' ? 'image' : 'chat';
+        this.saveScenario(this.currentScenario);
+        this.updateScenarioDisplay();
+        
+        // 根据场景切换模型配置
+        if (this.currentScenario === 'image') {
+            this.loadImageModels();
+        } else {
+            this.loadTextModels();
+        }
+        
+        const scenarioName = this.currentScenario === 'chat' ? '日常对话' : '图像生成';
+        this.addSystemMessage(`已切换到${scenarioName}模式`);
+    }
+
+    // 更新使用场景显示
+    updateScenarioDisplay() {
+        const scenarioToggle = document.getElementById('scenarioToggle');
+        const scenarioText = document.getElementById('scenarioText');
+        const scenarioIcon = scenarioToggle?.querySelector('i');
+        
+        if (scenarioToggle && scenarioText && scenarioIcon) {
+            if (this.currentScenario === 'image') {
+                scenarioToggle.classList.add('image-mode');
+                scenarioIcon.className = 'fas fa-image';
+                scenarioText.textContent = '图像生成';
+            } else {
+                scenarioToggle.classList.remove('image-mode');
+                scenarioIcon.className = 'fas fa-comments';
+                scenarioText.textContent = '日常对话';
+            }
+        }
+    }
+
+    // 保存使用场景设置
+    saveScenario(scenario) {
+        localStorage.setItem('scenario', scenario);
+    }
+
+    // 获取存储的使用场景设置
+    getStoredScenario() {
+        return localStorage.getItem('scenario');
+    }
+
+    // 加载图像生成模型
+    loadImageModels() {
+        // 临时保存当前文本模型配置
+        this.savedTextModel = this.currentModel;
+        this.savedTextProvider = this.currentProvider;
+        
+        // 获取第一个可用的图像模型
+        const result = this.configManager.getFirstEnabledImageProviderAndModel();
+        if (result) {
+            this.currentModel = result.model;
+            this.currentProvider = result.provider;
+            this.isImageMode = true; // 标记为图像模式
+            
+            // 设置ConfigManager中的图像提供商和模型
+            this.configManager.setImageProvider(result.provider);
+            this.configManager.setImageModel(result.model);
+        }
+        
+        // 重新初始化模型选项（显示图像模型）
+        this.initializeImageModelOptions();
+        this.updateModelDisplay();
+    }
+
+    // 加载文本对话模型
+    loadTextModels() {
+        this.isImageMode = false; // 标记为文本模式
+        
+        // 恢复之前的文本模型，如果没有则使用默认
+        if (this.savedTextModel && this.savedTextProvider) {
+            this.currentModel = this.savedTextModel;
+            this.currentProvider = this.savedTextProvider;
+        } else {
+            // 获取第一个可用的文本模型
+            const result = this.configManager.getFirstEnabledProviderAndModel();
+            if (result) {
+                this.currentModel = result.model;
+                this.currentProvider = result.provider;
+            }
+        }
+        
+        // 重新初始化模型选项（显示文本模型）
+        this.initializeModelOptions();
+        this.updateModelDisplay();
+    }
+
+    // 初始化图像模型选项
+    initializeImageModelOptions() {
+        const modelOptions = document.getElementById('modelOptions');
+        if (!modelOptions) return;
+        
+        const imageProviders = this.configManager.getImageProviders();
+        
+        // 清空现有选项
+        modelOptions.innerHTML = '';
+        
+        // 按提供商分组显示图像模型
+        imageProviders.forEach(provider => {
+            if (!provider.models || provider.models.length === 0) return;
+            
+            // 创建提供商分组标题
+            const providerGroup = document.createElement('div');
+            providerGroup.className = 'provider-group';
+            
+            const providerHeader = document.createElement('div');
+            providerHeader.className = 'provider-header';
+            providerHeader.textContent = provider.name;
+            providerGroup.appendChild(providerHeader);
+            
+            // 添加该提供商的所有模型
+            provider.models.forEach(model => {
+                const option = document.createElement('div');
+                option.className = 'model-option';
+                option.dataset.model = model;
+                option.dataset.provider = provider.key;
+                
+                // 获取模型别名
+                const modelAlias = this.configManager.getModelAlias(provider.key, model);
+                option.textContent = modelAlias;
+                
+                if (model === this.currentModel) {
+                    option.classList.add('active');
+                }
+                
+                providerGroup.appendChild(option);
+            });
+            
+            modelOptions.appendChild(providerGroup);
+        });
+    }
+
+    // 调用图像生成API
+    async callImageAPI(userMessage, startTime) {
+        try {
+            const imageProviders = this.configManager.getAllImageProviders();
+            const currentProvider = imageProviders[this.currentProvider];
+            
+            if (!currentProvider || !currentProvider.enabled) {
+                this.addMessage('assistant', '当前图像生成提供商未启用，请在设置中启用');
+                this.resetSendButton();
+                return;
+            }
+
+            // 构建图像生成请求
+            const requestData = {
+                prompt: userMessage,
+                model: this.currentModel,
+                width: this.configManager.getImageWidth(),
+                height: this.configManager.getImageHeight(),
+                steps: this.configManager.getImageSteps(),
+                guidance_scale: this.configManager.getImageGuidanceScale()
+            };
+
+            const headers = this.configManager.getImageHeaders(this.currentProvider);
+            const method = this.configManager.getImageMethod(this.currentProvider);
+            
+            let url = currentProvider.baseURL;
+            let fetchOptions = {
+                method: method,
+                headers: headers
+            };
+
+            if (method === 'GET') {
+                // 对于GET请求（如Pollinations），将参数添加到URL
+                const params = new URLSearchParams({
+                    prompt: userMessage,
+                    model: this.currentModel,
+                    width: requestData.width,
+                    height: requestData.height
+                });
+                url += `/${encodeURIComponent(userMessage)}?${params.toString()}`;
+            } else {
+                // 对于POST请求，将数据放在body中
+                fetchOptions.body = JSON.stringify(requestData);
+            }
+
+            const response = await fetch(url, fetchOptions);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            let imageUrl;
+            if (method === 'GET') {
+                // 对于GET请求，响应本身就是图像
+                imageUrl = url;
+            } else {
+                // 对于POST请求，解析JSON响应获取图像URL
+                const result = await response.json();
+                imageUrl = result.data?.[0]?.url || result.url || result.image_url;
+            }
+
+            if (imageUrl) {
+                const responseTime = Date.now() - startTime;
+                const imageContent = `![生成的图像](${imageUrl})`;
+                this.addMessage('assistant', imageContent, false, true, responseTime);
+            } else {
+                this.addMessage('assistant', '图像生成失败，未能获取到图像URL');
+            }
+
+        } catch (error) {
+            console.error('图像生成错误:', error);
+            this.addMessage('assistant', '图像生成失败，请稍后重试');
+        } finally {
+            this.resetSendButton();
+        }
     }
 
     // 侧边栏折叠切换

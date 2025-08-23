@@ -639,6 +639,28 @@ body {
     color: #ffffff;
 }
 
+.sidebar-action-btn.scenario-toggle.image-mode {
+    background-color: rgba(139, 69, 19, 0.1);
+    color: #8B4513;
+    border: 1px solid rgba(139, 69, 19, 0.2);
+}
+
+.sidebar-action-btn.scenario-toggle.image-mode:hover {
+    background-color: rgba(139, 69, 19, 0.2);
+    color: #A0522D;
+}
+
+[data-theme="dark"] .sidebar-action-btn.scenario-toggle.image-mode {
+    background-color: rgba(210, 180, 140, 0.1);
+    color: #DEB887;
+    border: 1px solid rgba(210, 180, 140, 0.2);
+}
+
+[data-theme="dark"] .sidebar-action-btn.scenario-toggle.image-mode:hover {
+    background-color: rgba(210, 180, 140, 0.2);
+    color: #F5DEB3;
+}
+
 
 /* 聊天头部 */
 .chat-header {

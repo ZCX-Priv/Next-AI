@@ -8,6 +8,7 @@ const TEXT_API_CONFIG = {
         enabled: false, 
         baseURL: 'https://api.openai.com/v1/chat/completions',
         apiKey: '', // 请在此处填入您的API密钥
+        defaultModel: 'gpt-4-turbo-preview', // 默认模型
         models: {
             'gpt-4-turbo-preview': 'GPT-4 Turbo',
             'gpt-4': 'GPT-4',
@@ -26,6 +27,7 @@ const TEXT_API_CONFIG = {
         enabled: false, 
         baseURL: 'https://generativelanguage.googleapis.com/v1beta3',
         apiKey: '', // 请在此处填入您的API密钥
+        defaultModel: 'gemini-pro', // 默认模型
         models: {
             'gemini-pro': 'Gemini Pro',
             'gemini-pro-vision': 'Gemini Pro Vision',
@@ -43,6 +45,7 @@ const TEXT_API_CONFIG = {
         enabled: false, 
         baseURL: 'https://api.anthropic.com/v1/messages',
         apiKey: '', // 请在此处填入您的API密钥
+        defaultModel: 'claude-3-opus-20240229', // 默认模型
         models: {
             'claude-3-opus-20240229': 'Claude 3 Opus',
             'claude-3-sonnet-20240229': 'Claude 3 Sonnet',
@@ -63,6 +66,7 @@ const TEXT_API_CONFIG = {
         enabled: false, 
         baseURL: 'https://api.deepseek.com/v1/chat/completions',
         apiKey: '', // 请在此处填入您的API密钥
+        defaultModel: 'deepseek-chat', // 默认模型
         models: {
             'deepseek-chat': 'DeepSeek Chat',
             'deepseek-coder': 'DeepSeek Coder',
@@ -80,6 +84,7 @@ const TEXT_API_CONFIG = {
         enabled: false, 
         baseURL: 'https://api.x.ai/v1/chat/completions',
         apiKey: '', // 请在此处填入您的API密钥
+        defaultModel: 'grok-beta', // 默认模型
         models: {
             'grok-beta': 'Grok Beta',
             'grok-vision-beta': 'Grok Vision Beta'
@@ -93,9 +98,10 @@ const TEXT_API_CONFIG = {
     // OpenRouter配置
     openrouter: {
         name: 'OpenRouter',
-        enabled: true, 
+        enabled: false, 
         baseURL: 'https://openrouter.ai/api/v1/chat/completions',
         apiKey: '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', // 请在此处填入您的API密钥
+        defaultModel: 'deepseek/deepseek-chat-v3-0324:free', // 默认模型
         models: {
             'deepseek/deepseek-chat-v3-0324:free': 'DeepSeek V3',
             'deepseek/deepseek-r1-0528:free': 'DeepSeek R1',
@@ -120,6 +126,7 @@ const TEXT_API_CONFIG = {
         enabled: true, 
         baseURL: 'https://text.pollinations.ai/openai',
         apiKey: '38DJtIV7dXrRdYNl', // Pollinations通常不需要API密钥
+        defaultModel: 'deepseek-reasoning', // 默认模型
         models: {
             'openai': 'OpenAI',
             'openai-fast': 'OpenAI Fast',
@@ -142,9 +149,10 @@ const TEXT_API_CONFIG = {
     // Chat Anywhere配置
     chatanywhere: {
         name: 'Chat Anywhere',
-        enabled: true,
+        enabled: false,
         baseURL: 'https://api.chatanywhere.tech/v1/chat/completions',
         apiKey: 'sk-tPKcHK1b3gkjJ0873tB7btBlIbbW2nnaEb54L8YNS6KmbxB0', // 请在此处填入您的API密钥
+        defaultModel: 'deepseek-r1', // 默认模型
         models: {
             'gpt-3.5-turbo': 'GPT-3.5 Turbo',
             'gpt-4o': 'GPT-4o',
@@ -170,6 +178,7 @@ const TEXT_API_CONFIG = {
         enabled: false, 
         baseURL: 'http://localhost:11434/v1/chat/completions',
         apiKey: '', // Ollama不需要API密钥
+        defaultModel: 'llama3.2', // 默认模型
         models: {
             'llama3.2': 'Llama 3.2',
             'llama3.1': 'Llama 3.1',
@@ -180,6 +189,30 @@ const TEXT_API_CONFIG = {
         },
         headers: {
             'Content-Type': 'application/json'
+        }
+    },
+
+    // ModelScope配置
+    modelscope: {
+        name: 'ModelScope',
+        enabled: false,
+        baseURL: 'https://api-inference.modelscope.cn/v1',
+        apiKey: 'ms-1fc29858-708b-43ff-90a1-26a05483c77b', // 请在此处填入您的API密钥
+        defaultModel: 'deepseek-ai/DeepSeek-V3.1', // 默认模型
+        models: {
+            'deepseek-ai/DeepSeek-V3':'DeepSeek V3',
+            'deepseek-ai/DeepSeek-V3.1':'DeepSeek-V3.1',
+            'deepseek-ai/DeepSeek-R1':'DeepSeek-R1',
+            'Qwen/Qwen3-30B-A3B-Thinking-2507':'通义千问 3.0 mini',
+            'Qwen/Qwen3-235B-A22B-Instruct-2507':'通义千问 3.0',
+            'Qwen/Qwen3-235B-A22B-Thinking-2507':'通义千问 3.0 推理版',
+            'moonshotai/Kimi-K2-Instruct':'Kimi K2',
+            'ZhipuAI/GLM-4.5':'GLM-4.5',
+            'MiniMax/MiniMax-M1-80k': 'MiniMax M1'
+        },
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer {API_KEY}'
         }
     }
 };
@@ -193,6 +226,7 @@ const IMAGE_API_CONFIG = {
         baseURL: 'https://api.openai.com/v1/images/generations',
         apiKey: '', // 请在此处填入您的API密钥
         method: 'POST', // OpenAI使用POST方法
+        defaultModel: 'dall-e-3', // 默认模型
         models: {
             'dall-e-3': 'DALL-E 3',
             'dall-e-2': 'DALL-E 2'
@@ -210,6 +244,7 @@ const IMAGE_API_CONFIG = {
         baseURL: 'https://image.pollinations.ai/prompt',
         apiKey: '38DJtIV7dXrRdYNl', 
         method: 'GET', // Pollinations使用GET方法
+        defaultModel: 'turbo', // 默认模型
         models: {
             'turbo': 'Turbo',
             'flux': 'Flux 通用版',
@@ -230,6 +265,7 @@ const IMAGE_API_CONFIG = {
         baseURL: 'https://api.stability.ai/v1/generation',
         apiKey: '', // 请在此处填入您的API密钥
         method: 'POST', // Stability AI使用POST方法
+        defaultModel: 'stable-diffusion-xl-1024-v1-0', // 默认模型
         models: {
             'stable-diffusion-xl-1024-v1-0': 'Stable Diffusion XL',
             'stable-diffusion-v1-6': 'Stable Diffusion v1.6',
@@ -248,6 +284,7 @@ const IMAGE_API_CONFIG = {
         baseURL: 'https://api.midjourney.com/v1/imagine',
         apiKey: '', // 请在此处填入您的API密钥
         method: 'POST', // Midjourney使用POST方法
+        defaultModel: 'midjourney-v6', // 默认模型
         models: {
             'midjourney-v6': 'Midjourney v6',
             'midjourney-v5': 'Midjourney v5',
@@ -297,12 +334,15 @@ class ConfigManager {
         const enabledProviders = this.getProviders();
         if (enabledProviders.length > 0) {
             const firstProvider = enabledProviders[0];
+            const providerConfig = TEXT_API_CONFIG[firstProvider.key];
             const modelKeys = Object.keys(firstProvider.models || {});
             if (modelKeys.length > 0) {
-                const firstModel = modelKeys[0];
+                // 优先使用defaultModel，如果没有设置则使用第一个模型
+                const defaultModel = providerConfig?.defaultModel;
+                const selectedModel = (defaultModel && modelKeys.includes(defaultModel)) ? defaultModel : modelKeys[0];
                 return {
                     provider: firstProvider.key,
-                    model: firstModel
+                    model: selectedModel
                 };
             }
         }
@@ -315,16 +355,47 @@ class ConfigManager {
         const enabledProviders = this.getImageProviders();
         if (enabledProviders.length > 0) {
             const firstProvider = enabledProviders[0];
+            const providerConfig = IMAGE_API_CONFIG[firstProvider.key];
             const modelKeys = Object.keys(firstProvider.models || {});
             if (modelKeys.length > 0) {
-                const firstModel = modelKeys[0];
+                // 优先使用defaultModel，如果没有设置则使用第一个模型
+                const defaultModel = providerConfig?.defaultModel;
+                const selectedModel = (defaultModel && modelKeys.includes(defaultModel)) ? defaultModel : modelKeys[0];
                 return {
                     provider: firstProvider.key,
-                    model: firstModel
+                    model: selectedModel
                 };
             }
         }
         // 如果没有启用的提供商，返回null
+        return null;
+    }
+
+    // 获取指定文本提供商的默认模型
+    getProviderDefaultModel(provider) {
+        const providerConfig = TEXT_API_CONFIG[provider];
+        if (providerConfig && providerConfig.models) {
+            const modelKeys = Object.keys(providerConfig.models);
+            if (modelKeys.length > 0) {
+                // 优先使用defaultModel，如果没有设置则使用第一个模型
+                const defaultModel = providerConfig.defaultModel;
+                return (defaultModel && modelKeys.includes(defaultModel)) ? defaultModel : modelKeys[0];
+            }
+        }
+        return null;
+    }
+
+    // 获取指定图像提供商的默认模型
+    getImageProviderDefaultModel(provider) {
+        const providerConfig = IMAGE_API_CONFIG[provider];
+        if (providerConfig && providerConfig.models) {
+            const modelKeys = Object.keys(providerConfig.models);
+            if (modelKeys.length > 0) {
+                // 优先使用defaultModel，如果没有设置则使用第一个模型
+                const defaultModel = providerConfig.defaultModel;
+                return (defaultModel && modelKeys.includes(defaultModel)) ? defaultModel : modelKeys[0];
+            }
+        }
         return null;
     }
 

@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NextAI</title>
+    <link rel="icon" type="image/png" href="./NextAI.png">
     <link rel="stylesheet" href="./styles/style.css">
     <link href="./libs/fontawesome-6.0.0/css/all.min.css" rel="stylesheet">
 
@@ -68,6 +69,12 @@
                         <i class="fas fa-sun"></i>
                         <span id="themeText">白昼模式</span>
                     </button>
+                    <!--
+                    <button class="sidebar-action-btn scenario-toggle" id="scenarioToggle" title="切换使用场景">
+                        <i class="fas fa-comments"></i>
+                        <span id="scenarioText">日常对话</span>
+                    </button>
+                     -->
                     <button class="sidebar-action-btn settings-toggle" id="settingsToggle" title="设置">
                         <i class="fas fa-cog"></i>
                         <span>设置</span>
@@ -106,8 +113,7 @@
                         <div class="welcome-logo">
                             <i class="fas fa-robot"></i>
                         </div>
-                        <h1 class="welcome-title" id="welcomeTitle">欢迎使用 NextAI</h1>
-                        <p class="welcome-subtitle">您的智能对话助手，随时为您提供帮助</p>
+                        <h1 class="welcome-title" id="welcomeTitle">有什么可以帮忙的？</h1>
                     </div>
                 </div>
                 
@@ -254,7 +260,7 @@
             
             const welcomeTitle = document.getElementById('welcomeTitle');
             if (welcomeTitle) {
-                welcomeTitle.textContent = greeting + '欢迎使用 NextAI';
+                welcomeTitle.textContent = greeting + '有什么可以帮忙的？';
             }
         }
         
